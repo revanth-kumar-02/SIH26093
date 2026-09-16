@@ -1,0 +1,210 @@
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../core/theme/app_colors.dart';
+
+/// Top App Bar matching the discreet Sanctuary Header from Stitch.
+class SanctuaryHeader extends StatelessWidget implements PreferredSizeWidget {
+  const SanctuaryHeader({
+    super.key,
+    this.title = 'Sanctuary Home',
+    this.subtitle = 'NHAA SANCTUARY',
+    this.showHelpline = true,
+    this.showBack = false,
+    this.onBack,
+    this.showProfile = true,
+    this.actions,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool showHelpline;
+  final bool showBack;
+  final VoidCallback? onBack;
+  final bool showProfile;
+  final List<Widget>? actions;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  Future<void> _launchDialer(BuildContext context, String number) async {
+    final uri = Uri.parse('tel:$number');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Please dial $number from your phone.'),
+              backgroundColor: AppColors.tertiary,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please dial $number from your phone.'),
+            backgroundColor: AppColors.tertiary,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showHelplineDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainerLowest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.phone_in_talk, color: AppColors.tertiary, size: 22),
+            SizedBox(width: 10),
+            Text('Helpline 14566', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          ],
+        ),
+        content: const Text(
+          'Connect directly with the NHAA National Helpline 14566 for immediate, confidential assistance.',
+          style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.onSurfaceVariant)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.tertiary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _launchDialer(context, '14566');
+            },
+            child: const Text('Call 14566'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      backgroundColor: AppColors.surface.withValues(alpha: 0.95),
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      leading: showBack
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.onSurface, size: 22),
+              onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+              tooltip: 'Back',
+            )
+          : null,
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              'assets/images/sanctuary_emblem.png',
+              width: 30,
+              height: 30,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.spa, color: AppColors.primary, size: 16),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    color: AppColors.secondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        ...?actions,
+        if (actions == null && showHelpline) ...[
+          InkWell(
+            onTap: () => _showHelplineDialog(context),
+            borderRadius: BorderRadius.circular(999),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.secondaryContainer,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.call, color: AppColors.onSecondaryContainer, size: 13),
+                  SizedBox(width: 4),
+                  Text(
+                    '14566',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.onSecondaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+        if (actions == null && showProfile) ...[
+          Container(
+            width: 30,
+            height: 30,
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.person, color: Colors.white, size: 16),
+          ),
+          const SizedBox(width: 14),
+        ],
+      ],
+    );
+  }
+}
