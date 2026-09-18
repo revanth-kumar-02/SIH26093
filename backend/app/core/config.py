@@ -76,10 +76,12 @@ class Settings(BaseModel):
     MEMORY_MAX_CONTEXT_WORDS: int = int(os.getenv("MEMORY_MAX_CONTEXT_WORDS", "350"))
     MEMORY_MAX_PREVIOUS_SESSIONS: int = int(os.getenv("MEMORY_MAX_PREVIOUS_SESSIONS", "3"))
 
-    # Multimodal LLM Assessment Settings - Gemma 3n E2B IT
-    GEMMA_MODEL_ID: str = os.getenv("GEMMA_MODEL_ID", "google/gemma-3n-E2B-it")
+    # Multimodal LLM Assessment Settings - Gemma Remote Inference (Hugging Face InferenceClient)
+    HF_CHAT_MODEL: str = os.getenv("HF_CHAT_MODEL", os.getenv("GEMMA_MODEL_ID", "google/gemma-3-4b-it"))
+    GEMMA_MODEL_ID: str = os.getenv("GEMMA_MODEL_ID", os.getenv("HF_CHAT_MODEL", "google/gemma-3-4b-it"))
     GEMMA_DEVICE: str = os.getenv("GEMMA_DEVICE", "cpu")
     USE_MOCK_GEMMA: bool = os.getenv("USE_MOCK_GEMMA", "false").lower() == "true"
+    AI_ALLOW_FALLBACK: bool = os.getenv("AI_ALLOW_FALLBACK", "false").lower() == "true"
     GEMMA_MAX_NEW_TOKENS: int = int(os.getenv("GEMMA_MAX_NEW_TOKENS", "1024"))
     GEMMA_TEMPERATURE: float = float(os.getenv("GEMMA_TEMPERATURE", "0.2"))
 

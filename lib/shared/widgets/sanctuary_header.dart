@@ -7,8 +7,8 @@ import '../../core/theme/app_colors.dart';
 class SanctuaryHeader extends StatelessWidget implements PreferredSizeWidget {
   const SanctuaryHeader({
     super.key,
-    this.title = 'Sanctuary Home',
-    this.subtitle = 'NHAA SANCTUARY',
+    this.title = 'TrueVoice Home',
+    this.subtitle = 'TRUEVOICE',
     this.showHelpline = true,
     this.showBack = false,
     this.onBack,
@@ -139,7 +139,7 @@ class SanctuaryHeader extends StatelessWidget implements PreferredSizeWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.asset(
-              'assets/images/sanctuary_emblem.png',
+              'assets/images/truevoice_emblem.png',
               width: 30,
               height: 30,
               fit: BoxFit.contain,

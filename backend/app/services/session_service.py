@@ -690,7 +690,13 @@ class SessionService:
             if llm_response and llm_response.strip():
                 return llm_response.strip()
         except Exception as err:
-            logger.warning(f"Gemma generate_response failed, using safety fallback template: {err}")
+            if not settings.AI_ALLOW_FALLBACK:
+                logger.error(f"[REAL GEMMA INFERENCE FAILED - FALLBACK DISABLED] {err}")
+                raise RuntimeError(f"Real Gemma chat inference failed and fallback is disabled: {err}") from err
+            logger.warning(f"[AI FALLBACK ACTIVE] Gemma generate_response failed, using safety fallback template: {err}")
+
+        if not settings.AI_ALLOW_FALLBACK:
+            raise RuntimeError("Real Gemma chat inference produced empty response and fallback is disabled.")
 
         # 2. Deterministic Safety Fallback Templates (Multilingual)
         is_immediate = False

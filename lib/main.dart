@@ -1,10 +1,30 @@
 import 'package:flutter/material.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/app_strings.dart';
+import 'core/network/supabase_config.dart';
 import 'core/routes/app_router.dart';
+import 'core/services/supabase_auth_service.dart';
 import 'core/theme/app_theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Supabase Auth client with graceful fallback for testing/offline environments
+  try {
+    if (SupabaseConfig.isConfigured) {
+      await Supabase.initialize(
+        url: SupabaseConfig.url,
+        // ignore: deprecated_member_use
+        anonKey: SupabaseConfig.anonKey,
+      );
+    }
+  } catch (e) {
+    debugPrint('Supabase initialization notice: $e');
+  }
+
+  // Initialize central authentication session state
+  await SupabaseAuthService.instance.initialize();
+
   runApp(const NhaaApp());
 }
 

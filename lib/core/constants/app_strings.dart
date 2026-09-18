@@ -36,15 +36,15 @@ class AppStrings {
       'This is a demonstration contact number for testing. For actual nationwide emergency services in India, dial 112.';
 
   // ── App Identity ────────────────────────────────────────────────
-  static const String appName = 'NHAA Support';
+  static const String appName = 'TrueVoice';
   static const String appFullName =
       'AI-Based Real-Time Stress and Trauma Assessment';
-  static const String appTagline = 'Support. Assess. Respond.';
+  static const String appTagline = 'Your voice matters.';
   static const String organizationName =
       'National Helpline Against Atrocities';
 
   // ── Victim Flow Titles ──────────────────────────────────────────
-  static const String splashTitle = 'NHAA Support';
+  static const String splashTitle = 'TrueVoice';
   static const String welcomeTitle = 'Welcome';
   static const String languageSelectionTitle = 'Choose Your Language';
   static const String consentTitle = 'Consent & Privacy';
@@ -79,8 +79,8 @@ class AppStrings {
   static final Map<String, Map<String, String>> _translations = {
     // English
     'en': {
-      'sanctuary_home': 'Sanctuary Home',
-      'nhaa_sanctuary': 'NHAA SANCTUARY',
+      'sanctuary_home': 'TrueVoice Home',
+      'nhaa_sanctuary': 'TrueVoice',
       'safe_encrypted': 'Encrypted, discrete & safe',
       'how_share': 'How would you like to share what happened?',
       'choose_pace': 'Choose the option that feels most comfortable right now.',

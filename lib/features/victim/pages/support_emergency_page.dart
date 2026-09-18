@@ -89,7 +89,7 @@ class _SupportEmergencyPageState extends State<SupportEmergencyPage> {
       backgroundColor: AppColors.surface,
       appBar: SanctuaryHeader(
         title: 'Care & Emergency',
-        subtitle: 'NHAA SANCTUARY',
+        subtitle: 'TRUEVOICE',
         showBack: true,
         onBack: () => context.go(RoutePaths.home),
       ),
@@ -284,7 +284,7 @@ class _SupportEmergencyPageState extends State<SupportEmergencyPage> {
                     onPressed: _performQuickExit,
                     icon: const Icon(Icons.close, size: 18),
                     label: const Text(
-                      'Quick Exit (Return to Sanctuary)',
+                      'Quick Exit (Return to TrueVoice)',
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                   ),

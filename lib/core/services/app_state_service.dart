@@ -121,93 +121,132 @@ class AppStateService extends ChangeNotifier {
 
   List<ChatMessage> get messages => List.unmodifiable(_messages);
 
+  // --- AI Generating & Typing State ---
+  bool _isAiGenerating = false;
+  bool get isAiGenerating => _isAiGenerating;
+
+  String? _lastFailedMessage;
+  String? get lastFailedMessage => _lastFailedMessage;
+  String? _lastFailedInputSource;
+
+  Future<void> retryLastMessage() async {
+    if (_lastFailedMessage != null) {
+      final msg = _lastFailedMessage!;
+      final src = _lastFailedInputSource ?? 'text';
+      _lastFailedMessage = null;
+      _lastFailedInputSource = null;
+      await _sendUserMessageInternal(msg, inputSource: src, isRetry: true);
+    }
+  }
+
   Future<void> sendUserMessage(String text, {String inputSource = 'text'}) async {
+    await _sendUserMessageInternal(text, inputSource: inputSource, isRetry: false);
+  }
+
+  Future<void> _sendUserMessageInternal(
+    String text, {
+    String inputSource = 'text',
+    bool isRetry = false,
+  }) async {
     if (text.trim().isEmpty) return;
 
     final trimmed = text.trim();
-    _messages.add(
-      ChatMessage(
-        id: 'user-${DateTime.now().millisecondsSinceEpoch}',
-        text: trimmed,
-        isAssistant: false,
-        timestamp: inputSource == 'voice' ? 'Spoken by you' : 'Shared by you',
-        inputSource: inputSource,
-      ),
-    );
+    if (!isRetry) {
+      _messages.add(
+        ChatMessage(
+          id: 'user-${DateTime.now().millisecondsSinceEpoch}',
+          text: trimmed,
+          isAssistant: false,
+          timestamp: inputSource == 'voice' ? 'Spoken by you' : 'Shared by you',
+          inputSource: inputSource,
+        ),
+      );
+    }
+
+    _isAiGenerating = true;
+    _lastFailedMessage = null;
+    _lastFailedInputSource = null;
     notifyListeners();
 
-    // Ensure active backend session
-    // Ensure active backend session
-    if (_sessionId == null || _sessionId!.startsWith('local-')) {
-      try {
-        final session = await _apiService.createSession(language: currentLanguageCode);
-        _sessionId = session.sessionId;
-        debugPrint('[AppStateService] Connected to backend session: $_sessionId');
-      } catch (e) {
-        debugPrint('[AppStateService] Backend session init failed ($e); using local mode');
+    try {
+      // Ensure active backend session
+      if (_sessionId == null || _sessionId!.startsWith('local-')) {
+        try {
+          final session = await _apiService.createSession(language: currentLanguageCode);
+          _sessionId = session.sessionId;
+          debugPrint('[AppStateService] Connected to backend session: $_sessionId');
+        } catch (e) {
+          debugPrint('[AppStateService] Backend session init failed ($e); using local mode');
+        }
       }
-    }
 
-    if (_sessionId != null && !_sessionId!.startsWith('local-')) {
-      try {
-        final response = await _apiService.sendMessage(
-          sessionId: _sessionId!,
-          message: trimmed,
-          language: currentLanguageCode,
-        );
+      if (_sessionId != null && !_sessionId!.startsWith('local-')) {
+        try {
+          final response = await _apiService.sendMessage(
+            sessionId: _sessionId!,
+            message: trimmed,
+            language: currentLanguageCode,
+            inputSource: inputSource.toUpperCase(),
+          );
 
-        _messages.add(
-          ChatMessage(
-            id: response.messageId,
-            text: response.response,
-            isAssistant: true,
-            timestamp: 'Moments ago',
-          ),
-        );
-        notifyListeners();
-        return;
-      } on SessionNotFoundException catch (e) {
-        debugPrint('[AppStateService] SessionNotFoundException: $e');
-        _sessionId = null;
-        _messages.add(
-          ChatMessage(
-            id: 'asst-err-${DateTime.now().millisecondsSinceEpoch}',
-            text: "Your session was refreshed. Please share your message again.",
-            isAssistant: true,
-            timestamp: 'Just now',
-          ),
-        );
-        notifyListeners();
-        return;
-      } on ApiException catch (e) {
-        debugPrint('[AppStateService] ApiException: ${e.userMessage} (${e.technicalDetails})');
-        _messages.add(
-          ChatMessage(
-            id: 'asst-err-${DateTime.now().millisecondsSinceEpoch}',
-            text: e.userMessage,
-            isAssistant: true,
-            timestamp: 'Just now',
-          ),
-        );
-        notifyListeners();
-        return;
-      } catch (e) {
-        debugPrint('[AppStateService] Unhandled network error: $e');
-        _messages.add(
-          ChatMessage(
-            id: 'asst-err-${DateTime.now().millisecondsSinceEpoch}',
-            text: "We couldn't connect right now. Please try again.",
-            isAssistant: true,
-            timestamp: 'Just now',
-          ),
-        );
-        notifyListeners();
-        return;
+          _messages.add(
+            ChatMessage(
+              id: response.messageId,
+              text: response.response,
+              isAssistant: true,
+              timestamp: 'Moments ago',
+            ),
+          );
+          return;
+        } on SessionNotFoundException catch (e) {
+          debugPrint('[AppStateService] SessionNotFoundException: $e');
+          _sessionId = null;
+          _lastFailedMessage = trimmed;
+          _lastFailedInputSource = inputSource;
+          _messages.add(
+            ChatMessage(
+              id: 'asst-err-${DateTime.now().millisecondsSinceEpoch}',
+              text: "Your session was refreshed. Please tap retry to send your message.",
+              isAssistant: true,
+              timestamp: 'Just now',
+            ),
+          );
+          return;
+        } on ApiException catch (e) {
+          debugPrint('[AppStateService] ApiException: ${e.userMessage} (${e.technicalDetails})');
+          _lastFailedMessage = trimmed;
+          _lastFailedInputSource = inputSource;
+          _messages.add(
+            ChatMessage(
+              id: 'asst-err-${DateTime.now().millisecondsSinceEpoch}',
+              text: e.userMessage,
+              isAssistant: true,
+              timestamp: 'Just now',
+            ),
+          );
+          return;
+        } catch (e) {
+          debugPrint('[AppStateService] Unhandled network error: $e');
+          _lastFailedMessage = trimmed;
+          _lastFailedInputSource = inputSource;
+          _messages.add(
+            ChatMessage(
+              id: 'asst-err-${DateTime.now().millisecondsSinceEpoch}',
+              text: "We couldn't connect right now. Please tap retry to try again.",
+              isAssistant: true,
+              timestamp: 'Just now',
+            ),
+          );
+          return;
+        }
       }
-    }
 
-    // Purely local/offline fallback
-    _generateEmpatheticResponse(trimmed);
+      // Purely local/offline fallback
+      _generateEmpatheticResponse(trimmed);
+    } finally {
+      _isAiGenerating = false;
+      notifyListeners();
+    }
   }
 
   // --- Voice / ASR Transcription Service Bridge ---

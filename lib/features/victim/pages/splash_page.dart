@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/routes/route_paths.dart';
+import '../../../../core/services/supabase_auth_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
 /// Screen 1: Splash (Redesigned) — Source of Truth from Stitch.
@@ -37,10 +38,10 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
       CurvedAnimation(parent: _breatheController, curve: Curves.easeInOut),
     );
 
-    // Subtle transition to Welcome after calm breathing period
-    _navigationTimer = Timer(const Duration(milliseconds: 2800), () {
+    // Transition to appropriate destination based on Supabase Auth state
+    _navigationTimer = Timer(const Duration(milliseconds: 2600), () {
       if (mounted) {
-        context.go(RoutePaths.welcome);
+        _proceedNow();
       }
     });
   }
@@ -54,7 +55,18 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
 
   void _proceedNow() {
     _navigationTimer?.cancel();
-    context.go(RoutePaths.welcome);
+    final auth = SupabaseAuthService.instance;
+    if (auth.status == AuthStatus.unverified) {
+      context.go(RoutePaths.verifyEmail);
+    } else if (auth.isAuthenticated) {
+      if (auth.isAdmin) {
+        context.go(RoutePaths.adminDashboard);
+      } else {
+        context.go(RoutePaths.welcome);
+      }
+    } else {
+      context.go(RoutePaths.login);
+    }
   }
 
   @override
@@ -137,7 +149,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                               ),
                               child: ClipOval(
                                 child: Image.asset(
-                                  'assets/images/sanctuary_emblem.png',
+                                  'assets/images/truevoice_emblem.png',
                                   fit: BoxFit.contain,
                                   errorBuilder: (context, error, stackTrace) => const Icon(
                                     Icons.spa,
@@ -153,7 +165,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
 
                         // Product Identity
                         Text(
-                          'NHAA Sanctuary',
+                          'TrueVoice',
                           style: Theme.of(context).textTheme.displaySmall?.copyWith(
                                 fontSize: 28,
                                 fontWeight: FontWeight.w600,
@@ -164,7 +176,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                         ),
                         const SizedBox(height: 12),
                         const Text(
-                          'A safe space to be heard,\nat your own pace.',
+                          'Your voice matters.',
                           style: TextStyle(
                             fontSize: 15,
                             height: 1.6,

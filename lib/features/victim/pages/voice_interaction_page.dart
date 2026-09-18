@@ -196,7 +196,7 @@ class _VoiceInteractionPageState extends State<VoiceInteractionPage>
           ],
         ),
         content: const Text(
-          'To listen gently and accurately transcribe your words, NHAA Sanctuary needs microphone permission. '
+          'To listen gently and accurately transcribe your words, TrueVoice needs microphone permission. '
           'Your voice is processed securely with zero-knowledge privacy protocols.',
           style: TextStyle(fontSize: 13.5, height: 1.5, color: AppColors.onSurfaceVariant),
         ),
@@ -257,7 +257,7 @@ class _VoiceInteractionPageState extends State<VoiceInteractionPage>
       backgroundColor: AppColors.surface,
       appBar: SanctuaryHeader(
         title: 'Voice Intake',
-        subtitle: 'NHAA SANCTUARY',
+        subtitle: 'TRUEVOICE',
         showBack: true,
         onBack: () => context.go(RoutePaths.home),
       ),
@@ -628,7 +628,7 @@ class _VoiceInteractionPageState extends State<VoiceInteractionPage>
                               ),
                               SizedBox(height: 4),
                               Text(
-                                'NHAA Sanctuary will never interrupt you. When finished, your speech is transcribed and you can review, continue in chat, or proceed with support.',
+                                'TrueVoice will never interrupt you. When finished, your speech is transcribed and you can review, continue in chat, or proceed with support.',
                                 style: TextStyle(
                                   fontSize: 12.5,
                                   height: 1.45,

@@ -4,6 +4,8 @@ import '../../../../core/network/api_config.dart';
 import '../../../../core/network/api_exceptions.dart';
 import '../models/responder_models.dart';
 
+import '../../../../core/services/supabase_auth_service.dart';
+
 class ResponderApiException extends ApiException {
   final int? statusCode;
   const ResponderApiException(String message, {this.statusCode})
@@ -17,12 +19,13 @@ class ResponderApiService {
 
   ResponderAuthSession? _session;
   ResponderAuthSession? get session => _session;
-  bool get isAuthenticated => _session != null && _session!.accessToken.isNotEmpty;
+  String? get activeToken => _session?.accessToken ?? SupabaseAuthService.instance.accessToken;
+  bool get isAuthenticated => (_session != null && _session!.accessToken.isNotEmpty) || SupabaseAuthService.instance.isAdmin;
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        if (_session != null) 'Authorization': 'Bearer ${_session!.accessToken}',
+        if (activeToken != null && activeToken!.isNotEmpty) 'Authorization': 'Bearer $activeToken',
       };
 
   /// Authenticate responder with credentials

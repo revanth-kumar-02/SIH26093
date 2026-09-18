@@ -118,12 +118,18 @@ async def send_message(
         if not request.language:
             language = conv.input_language or "en"
 
+    input_source = (
+        MessageInputSource.VOICE
+        if request.input_source and request.input_source.upper() == "VOICE"
+        else MessageInputSource.TEXT
+    )
+
     try:
         return await session_service.process_incoming_interaction(
             db=db,
             session_id=session_id,
             message=request.message,
-            input_source=MessageInputSource.TEXT,
+            input_source=input_source,
             language=language
         )
     except KeyError:

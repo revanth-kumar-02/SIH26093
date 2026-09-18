@@ -79,7 +79,6 @@ def test_database_case_and_relationships():
             admin = Responder(
                 username="admin_case_owner",
                 email="case_owner@nhaa.gov.in",
-                password_hash="$2b$12$synthetic_hash",
                 display_name="Case Owner Admin",
                 role=UserRole.ADMIN
             )

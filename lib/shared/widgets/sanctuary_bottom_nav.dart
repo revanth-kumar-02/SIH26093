@@ -38,7 +38,7 @@ class SanctuaryBottomNav extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, Icons.spa, 'Sanctuary'),
+              _buildNavItem(0, Icons.spa, 'TrueVoice'),
               _buildNavItem(1, Icons.edit_note, 'Lodge Support'),
               _buildNavItem(2, Icons.support_agent, 'Care & Help'),
               _buildNavItem(3, Icons.lock_outline, 'Safe Vault'),

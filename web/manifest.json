@@ -1,11 +1,11 @@
 {
-    "name": "nhaa_stress_assessment",
-    "short_name": "nhaa_stress_assessment",
+    "name": "TrueVoice",
+    "short_name": "TrueVoice",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "AI-Based Real-Time Stress and Trauma Assessment Module for NHAA",
+    "background_color": "#FDFBF7",
+    "theme_color": "#4B7258",
+    "description": "TrueVoice — Your voice matters.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

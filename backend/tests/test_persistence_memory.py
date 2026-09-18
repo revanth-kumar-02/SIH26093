@@ -264,7 +264,6 @@ async def test_memory_service_bounded_retrieval():
         user = Responder(
             username=f"mem_usr_{uuid.uuid4().hex[:6]}",
             email=f"mem_{uuid.uuid4().hex[:6]}@example.com",
-            password_hash=hash_password("Pass123!"),
             display_name="Memory Test Complainant",
             role=UserRole.PEOPLE
         )
@@ -348,14 +347,12 @@ async def test_cases_rbac_people_cannot_access_other_cases():
         user_a = Responder(
             username=f"victim_a_{uuid.uuid4().hex[:6]}",
             email=f"victim_a_{uuid.uuid4().hex[:6]}@test.com",
-            password_hash=hash_password("Pass123!"),
             display_name="Victim A",
             role=UserRole.PEOPLE
         )
         user_b = Responder(
             username=f"victim_b_{uuid.uuid4().hex[:6]}",
             email=f"victim_b_{uuid.uuid4().hex[:6]}@test.com",
-            password_hash=hash_password("Pass123!"),
             display_name="Victim B",
             role=UserRole.PEOPLE
         )

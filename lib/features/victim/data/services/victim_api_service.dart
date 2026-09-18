@@ -50,8 +50,12 @@ class VictimApiService {
     required String sessionId,
     required String message,
     String? language,
+    String inputSource = 'TEXT',
   }) async {
-    final body = <String, dynamic>{'message': message};
+    final body = <String, dynamic>{
+      'message': message,
+      'input_source': inputSource,
+    };
     if (language != null && language.isNotEmpty) {
       body['language'] = language;
     }

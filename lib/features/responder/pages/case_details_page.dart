@@ -321,7 +321,7 @@ class _CaseDetailsPageState extends State<CaseDetailsPage> with SingleTickerProv
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      isVictim ? 'Complainant' : 'Sanctuary Assistant',
+                                      isVictim ? 'Complainant' : 'TrueVoice Assistant',
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,

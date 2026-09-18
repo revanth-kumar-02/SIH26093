@@ -1,3 +1,7 @@
+import '../../features/auth/pages/email_verification_page.dart';
+import '../../features/auth/pages/forgot_password_page.dart';
+import '../../features/auth/pages/login_page.dart';
+import '../../features/auth/pages/sign_up_page.dart';
 import '../../features/responder/data/services/responder_api_service.dart';
 import '../../features/responder/pages/admin_views.dart';
 import 'package:flutter/material.dart';
@@ -21,26 +25,54 @@ import '../../features/victim/pages/support_emergency_page.dart';
 import '../../features/victim/pages/voice_interaction_page.dart';
 import '../../features/victim/pages/welcome_page.dart';
 import '../services/app_state_service.dart';
+import '../services/supabase_auth_service.dart';
 import 'route_paths.dart';
 
 /// Application router configuration using GoRouter.
 ///
-/// This provides a clean, declarative routing foundation.
-/// Routes are organized by flow (victim / responder) and
-/// can be extended with guards, redirects, and nested navigation
-/// as the application grows.
+/// Provides route guards for:
+/// - Supabase authentication and email verification state
+/// - RBAC role authorization (PEOPLE vs ADMIN)
+/// - Victim consent requirement
 class AppRouter {
   AppRouter._();
 
   static final GoRouter router = GoRouter(
     initialLocation: RoutePaths.splash,
-    debugLogDiagnostics: true,
+    debugLogDiagnostics: false,
+    refreshListenable: Listenable.merge([
+      AppStateService.instance,
+      SupabaseAuthService.instance,
+    ]),
     redirect: (context, state) {
-      final consent = AppStateService.instance.consentAgreed;
       final path = state.matchedLocation;
+      final auth = SupabaseAuthService.instance;
+      final consent = AppStateService.instance.consentAgreed;
 
-      // Screens that require consent to have been completed
-      const guarded = [
+      // 1. Email Verification Guard: If signed up but unverified, enforce verification screen
+      if (auth.status == AuthStatus.unverified && path != RoutePaths.verifyEmail && path != RoutePaths.splash) {
+        return RoutePaths.verifyEmail;
+      }
+
+      // 2. Admin Route Guards: Enforce ADMIN role
+      if (path.startsWith('/admin') && path != RoutePaths.adminLogin) {
+        final hasAdminAuth = auth.isAdmin || 
+            (ResponderApiService.instance.isAuthenticated && ResponderApiService.instance.session?.role == 'ADMIN');
+        if (!hasAdminAuth) {
+          return RoutePaths.adminLogin;
+        }
+      }
+
+      // 3. Responder Route Guards
+      if (path.startsWith('/responder') && path != RoutePaths.responderLogin) {
+        final hasAdminAuth = auth.isAdmin || ResponderApiService.instance.isAuthenticated;
+        if (!hasAdminAuth) {
+          return RoutePaths.responderLogin;
+        }
+      }
+
+      // 4. Victim Consent Guard: Screens requiring completed consent
+      const consentGuarded = [
         RoutePaths.home,
         RoutePaths.aiChat,
         RoutePaths.voiceInteraction,
@@ -48,22 +80,35 @@ class AppRouter {
         RoutePaths.supportEmergency,
       ];
 
-      if (!consent && guarded.contains(path)) {
+      if (!consent && consentGuarded.contains(path)) {
         return RoutePaths.consent;
       }
 
-      // Admin Route Guards (Phase 11)
-      if (path.startsWith('/admin') && path != RoutePaths.adminLogin) {
-        final session = ResponderApiService.instance.session;
-        final isAdmin = ResponderApiService.instance.isAuthenticated && session?.role == 'ADMIN';
-        if (!isAdmin) {
-          return RoutePaths.adminLogin;
-        }
-      }
-
-      return null; // no redirect
+      return null;
     },
     routes: [
+      // ── Authentication Flow ───────────────────────────────────
+      GoRoute(
+        path: RoutePaths.login,
+        name: 'login',
+        builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.register,
+        name: 'register',
+        builder: (context, state) => const SignUpPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.verifyEmail,
+        name: 'verifyEmail',
+        builder: (context, state) => const EmailVerificationPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.forgotPassword,
+        name: 'forgotPassword',
+        builder: (context, state) => const ForgotPasswordPage(),
+      ),
+
       // ── Victim Flow ───────────────────────────────────────────
       GoRoute(
         path: RoutePaths.splash,

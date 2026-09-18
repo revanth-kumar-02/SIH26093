@@ -1195,7 +1195,7 @@ class _AdminCaseDetailPageState extends State<AdminCaseDetailPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            isVictim ? 'Victim ($src)' : 'AI Sanctuary Assistant',
+                            isVictim ? 'Victim ($src)' : 'AI TrueVoice Assistant',
                             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                           ),
                           Text(

@@ -75,7 +75,7 @@ class _AssessmentStatusPageState extends State<AssessmentStatusPage> {
       backgroundColor: AppColors.surface,
       appBar: SanctuaryHeader(
         title: 'Intake Status',
-        subtitle: 'NHAA SANCTUARY',
+        subtitle: 'TRUEVOICE',
         showBack: true,
         onBack: () => context.go(RoutePaths.home),
       ),

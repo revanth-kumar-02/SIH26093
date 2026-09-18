@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:nhaa_stress_assessment/core/network/api_config.dart';
 import 'package:nhaa_stress_assessment/core/network/api_exceptions.dart';
 import 'package:nhaa_stress_assessment/features/victim/data/models/api_models.dart';
@@ -232,6 +232,16 @@ void main() {
       expect(userVoiceMessage.text, 'I am looking for emergency shelter assistance');
       expect(userVoiceMessage.isAssistant, isFalse);
       expect(userVoiceMessage.inputSource, 'voice');
+    });
+
+    test('AppStateService manages AI generating state and retry accurately', () async {
+      final appState = AppStateService.instance;
+      expect(appState.isAiGenerating, isFalse);
+
+      final sendFuture = appState.sendUserMessage('Testing AI typing state');
+      expect(appState.isAiGenerating, isTrue);
+      await sendFuture;
+      expect(appState.isAiGenerating, isFalse);
     });
   });
 }

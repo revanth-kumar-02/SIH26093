@@ -3,6 +3,7 @@ import time
 import re
 import logging
 from typing import Optional, Dict, Any, List
+from huggingface_hub import InferenceClient
 from app.services.llm.base import BaseLLMAssessmentAdapter
 from app.services.llm.schemas import (
     MultimodalAssessmentInput,
@@ -18,108 +19,107 @@ from app.services.llm.prompts import (
     build_response_prompt,
 )
 from app.core.config import settings
-from app.core.telemetry import resolve_device, get_system_resources
 
 logger = logging.getLogger(__name__)
 
 
 class GemmaAdapter(BaseLLMAssessmentAdapter):
-    """Production LLM adapter for Gemma-3n-E2B-it multimodal assessment and response generation."""
+    """Production remote LLM adapter for Gemma conversational generation and assessment via Hugging Face InferenceClient."""
 
-    def __init__(self, model_id: Optional[str] = None, device: Optional[str] = None) -> None:
-        self.model_id = model_id or settings.GEMMA_MODEL_ID
-        self.device = resolve_device(device or settings.GEMMA_DEVICE)
-        self._tokenizer = None
-        self._model = None
+    def __init__(
+        self,
+        model_id: Optional[str] = None,
+        token: Optional[str] = None,
+        device: Optional[str] = None
+    ) -> None:
+        self.model_id = model_id or settings.HF_CHAT_MODEL or settings.GEMMA_MODEL_ID
+        # Map legacy unsupported model ID if specified
+        if self.model_id == "google/gemma-3n-E2B-it":
+            self.model_id = "google/gemma-3-4b-it"
+        self.device = device or settings.GEMMA_DEVICE
+        self._token = token or settings.HF_TOKEN
+        self._client: Optional[InferenceClient] = None
         self._is_loaded = False
-        self._load_failed = False
         self._mock_fallback = MockGemmaAdapter(device=self.device)
-        logger.info(f"Initialized GemmaAdapter with model_id={self.model_id} on {self.device}")
+        self._init_client()
+
+    def _init_client(self) -> None:
+        if self._token:
+            self._client = InferenceClient(token=self._token)
+            self._is_loaded = True
+            logger.info(f"Initialized remote GemmaAdapter with model_id={self.model_id} via Hugging Face InferenceClient")
+        else:
+            logger.warning("GemmaAdapter initialized without HF_TOKEN; remote inference will be unauthenticated")
+            self._client = InferenceClient()
+            self._is_loaded = False
 
     def is_loaded(self) -> bool:
         return self._is_loaded
 
     def warmup(self) -> None:
-        try:
-            self._load()
-        except Exception as e:
-            logger.warning(f"Gemma model warmup failed: {e}")
+        """Verify remote inference connection with a lightweight probe."""
+        if not self._client:
+            self._init_client()
 
     def unload(self) -> None:
-        self._tokenizer = None
-        self._model = None
+        self._client = None
         self._is_loaded = False
-        try:
-            import torch
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-        except Exception:
-            pass
 
-    def _load(self) -> None:
-        if self._load_failed:
-            return
-        if not self._is_loaded:
-            import torch
-            from transformers import AutoTokenizer, AutoModelForCausalLM
-            start_t = time.perf_counter()
-            logger.info(f"Loading Gemma model: {self.model_id} on {self.device}...")
-            try:
-                self._tokenizer = AutoTokenizer.from_pretrained(
-                    self.model_id,
-                    token=settings.HF_TOKEN
-                )
-                self._model = AutoModelForCausalLM.from_pretrained(
-                    self.model_id,
-                    token=settings.HF_TOKEN,
-                    torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32,
-                    device_map="auto" if self.device == "cuda" else None
-                )
-                if self.device != "cuda":
-                    self._model.to(self.device)
-                self._model.eval()
-                self._is_loaded = True
-                load_ms = round((time.perf_counter() - start_t) * 1000.0, 2)
-                res = get_system_resources()
-                logger.info(f"Gemma model loaded in {load_ms}ms. RAM RSS: {res.get('ram_rss_mb')} MB")
-            except Exception as e:
-                self._load_failed = True
-                logger.warning(f"Gemma weights loading failed ({e}). Falling back to internal reasoning adapter.")
+    def _run_inference(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        max_new_tokens: int = 512
+    ) -> Optional[str]:
+        """Remote chat completion via Hugging Face InferenceClient with retry backoff."""
+        if not self._client:
+            self._init_client()
 
-    def _run_inference(self, system_prompt: str, user_prompt: str, max_new_tokens: int = 512) -> Optional[str]:
-        """Shared tokenisation + generation pipeline for both assessment and response calls."""
-        self._load()
-        if self._load_failed or not self._is_loaded:
-            return None
-        import torch
+        logger.info(f"[AI REQUEST] provider=huggingface model={self.model_id}")
 
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ]
 
-        if hasattr(self._tokenizer, "apply_chat_template"):
-            full_prompt = self._tokenizer.apply_chat_template(
-                messages,
-                tokenize=False,
-                add_generation_prompt=True
-            )
-        else:
-            full_prompt = f"{system_prompt}\n\nUser:\n{user_prompt}\n\nAssistant:"
+        max_retries = 3
+        backoff_seconds = 1.0
 
-        inputs = self._tokenizer(full_prompt, return_tensors="pt").to(self.device)
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = self._client.chat.completions.create(
+                    model=self.model_id,
+                    messages=messages,
+                    max_tokens=max_new_tokens,
+                    temperature=settings.GEMMA_TEMPERATURE
+                )
+                if response and response.choices and len(response.choices) > 0:
+                    content = response.choices[0].message.content
+                    if content:
+                        logger.info(
+                            f"[REAL GEMMA INFERENCE] model={self.model_id} "
+                            f"[AI RESPONSE] provider=huggingface model={self.model_id} source=real_inference"
+                        )
+                        return content.strip()
+                raise ValueError("Empty choices in response from Hugging Face InferenceClient")
 
-        with torch.no_grad():
-            output_tokens = self._model.generate(
-                **inputs,
-                max_new_tokens=max_new_tokens,
-                temperature=settings.GEMMA_TEMPERATURE,
-                do_sample=settings.GEMMA_TEMPERATURE > 0.0,
-                pad_token_id=self._tokenizer.eos_token_id
-            )
+            except Exception as e:
+                err_msg = str(e)
+                is_transient = "429" in err_msg or "overloaded" in err_msg.lower() or "busy" in err_msg.lower() or "timeout" in err_msg.lower()
+                if is_transient and attempt < max_retries:
+                    logger.warning(
+                        f"[REAL GEMMA INFERENCE RETRY] model={self.model_id} attempt={attempt}/{max_retries} "
+                        f"transient_error={err_msg[:120]}, retrying in {backoff_seconds}s..."
+                    )
+                    time.sleep(backoff_seconds)
+                    backoff_seconds *= 2
+                    continue
 
-        new_tokens = output_tokens[0][inputs["input_ids"].shape[-1]:]
-        return self._tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
+                logger.error(
+                    f"[REAL GEMMA INFERENCE FAILED] model={self.model_id} "
+                    f"error_type={type(e).__name__} error={err_msg[:200]}"
+                )
+                raise
 
     def assess(self, input_data: MultimodalAssessmentInput) -> TraumaAssessment:
         start_time = time.perf_counter()
@@ -140,16 +140,20 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
         try:
             raw_output = self._run_inference(SYSTEM_PROMPT, user_prompt, max_new_tokens=settings.GEMMA_MAX_NEW_TOKENS)
         except Exception as e:
-            logger.warning(f"Gemma assessment inference encountered error: {e}")
+            if settings.AI_ALLOW_FALLBACK:
+                logger.warning(f"[AI FALLBACK ACTIVE] Remote Gemma assessment failed ({e}). Routing assessment through fallback reasoning engine.")
+                return self._mock_fallback.assess(input_data)
+            raise RuntimeError(f"Gemma remote assessment failed: {e}") from e
 
         if not raw_output:
-            logger.info("Routing assessment through fallback reasoning engine")
-            return self._mock_fallback.assess(input_data)
+            if settings.AI_ALLOW_FALLBACK:
+                logger.info("[AI FALLBACK ACTIVE] Routing assessment through fallback reasoning engine")
+                return self._mock_fallback.assess(input_data)
+            raise RuntimeError("Gemma remote assessment returned empty output.")
 
         duration_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
         logger.info(f"[GEMMA SUCCESS] assessment inference done in {duration_ms}ms, raw_len={len(raw_output)}")
 
-        # Parse JSON
         parsed_json = self._extract_json(raw_output)
         if not parsed_json:
             logger.warning("Gemma did not return valid JSON; using structured fallback schema")
@@ -172,10 +176,9 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
         assessment: Optional[TraumaAssessment],
         language: str = "en",
     ) -> str:
-        """Generate a victim-facing empathetic conversational response using Gemma."""
+        """Generate a victim-facing empathetic conversational response using Gemma via remote HF inference."""
         start_time = time.perf_counter()
 
-        # Determine safety and distress flags from assessment
         has_safety_concern = False
         has_emotional_distress = False
         if assessment:
@@ -199,16 +202,21 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
         try:
             raw_response = self._run_inference(RESPONSE_SYSTEM_PROMPT, user_prompt, max_new_tokens=300)
         except Exception as e:
-            logger.warning(f"Gemma conversational inference encountered error: {e}")
+            if settings.AI_ALLOW_FALLBACK:
+                logger.warning(f"[AI FALLBACK ACTIVE] Gemma conversational inference encountered error: {e}. Using reasoning fallback.")
+                return self._mock_fallback.generate_response(
+                    user_message=user_message,
+                    conversation_history=conversation_history,
+                    assessment=assessment,
+                    language=language
+                )
+            raise RuntimeError(f"Gemma conversational inference failed: {e}") from e
 
         if not raw_response:
-            logger.info("Routing conversational response generation through fallback reasoning engine")
-            return self._mock_fallback.generate_response(
-                user_message=user_message,
-                conversation_history=conversation_history,
-                assessment=assessment,
-                language=language
-            )
+            if settings.AI_ALLOW_FALLBACK:
+                logger.warning("[AI FALLBACK ACTIVE] Empty response generated — using safety fallback")
+                return self._fallback_response(language, has_safety_concern)
+            raise RuntimeError("Gemma conversational inference returned empty response.")
 
         duration_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
         response_text = raw_response.strip()
@@ -216,10 +224,6 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
             f"[GEMMA SUCCESS] response inference done in {duration_ms}ms, "
             f"response_len={len(response_text)}"
         )
-
-        if not response_text:
-            logger.warning("[GEMMA] Empty response generated — using safety fallback")
-            return self._fallback_response(language, has_safety_concern)
 
         return response_text
 

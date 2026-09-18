@@ -208,7 +208,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                               const SizedBox(width: 8),
                               const Text(
-                                'SAFE SANCTUARY ACTIVE',
+                                'SAFE TRUEVOICE ACTIVE',
                                 style: TextStyle(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,

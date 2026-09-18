@@ -83,7 +83,7 @@ void main() {
     await tester.pumpWidget(createTestWidget(const AiChatPage()));
     await tester.pump();
 
-    expect(find.text('Sanctuary Guide'), findsWidgets);
+    expect(find.text('TrueVoice Guide'), findsWidgets);
     expect(find.text('I have a friend I can stay with'), findsOneWidget);
   });
 

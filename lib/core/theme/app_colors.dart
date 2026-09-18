@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Centralized color palette for NHAA Sanctuary.
+/// Centralized color palette for TrueVoice.
 ///
 /// Authoritative tokens directly derived from the approved Stitch designs:
 /// - Sage Green: Primary (#335941 / #4B7258)
