@@ -80,8 +80,15 @@ class AppRouter {
         RoutePaths.supportEmergency,
       ];
 
-      if (!consent && consentGuarded.contains(path)) {
-        return RoutePaths.consent;
+      final isOnboardingDone = auth.onboardingCompleted || consent;
+      if (!isOnboardingDone && consentGuarded.contains(path)) {
+        if (auth.preferredLanguage == null || auth.preferredLanguage!.isEmpty) {
+          debugPrint('[ROUTER] Routing to LANGUAGE');
+          return RoutePaths.languageSelection;
+        } else if (!auth.consentAccepted) {
+          debugPrint('[ROUTER] Routing to CONSENT');
+          return RoutePaths.consent;
+        }
       }
 
       return null;

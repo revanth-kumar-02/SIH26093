@@ -39,9 +39,20 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
 
     if (verified) {
       if (auth.isAdmin) {
+        debugPrint('[ROUTER] Routing to ADMIN');
         context.go(RoutePaths.adminDashboard);
-      } else {
+      } else if (auth.onboardingCompleted) {
+        debugPrint('[ROUTER] Routing to HOME');
+        context.go(RoutePaths.home);
+      } else if (auth.preferredLanguage == null || auth.preferredLanguage!.isEmpty) {
+        debugPrint('[ROUTER] Routing to LANGUAGE');
         context.go(RoutePaths.welcome);
+      } else if (!auth.consentAccepted) {
+        debugPrint('[ROUTER] Routing to CONSENT');
+        context.go(RoutePaths.consent);
+      } else {
+        debugPrint('[ROUTER] Routing to HOME');
+        context.go(RoutePaths.home);
       }
     } else {
       setState(() {

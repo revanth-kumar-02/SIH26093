@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../network/api_config.dart';
+import 'app_state_service.dart';
 
 /// Authentication state categories for route guards and UI state presentation.
 enum AuthStatus {
@@ -46,6 +47,22 @@ class SupabaseAuthService extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
+  // --- Onboarding & Profile State (Supabase profiles as source of truth) ---
+  bool _isProfileLoading = false;
+  bool get isProfileLoading => _isProfileLoading;
+
+  String? _preferredLanguage;
+  String? get preferredLanguage => _preferredLanguage;
+
+  bool _consentAccepted = false;
+  bool get consentAccepted => _consentAccepted;
+
+  String? _consentVersion;
+  String? get consentVersion => _consentVersion;
+
+  bool _onboardingCompleted = false;
+  bool get onboardingCompleted => _onboardingCompleted;
+
   bool get isAuthenticated => _status == AuthStatus.authenticated && _accessToken != null;
   bool get isEmailVerified => _status == AuthStatus.authenticated;
   bool get isAdmin => isAuthenticated && _role.toUpperCase() == 'ADMIN';
@@ -88,6 +105,8 @@ class SupabaseAuthService extends ChangeNotifier {
           _status = AuthStatus.unverified;
         } else {
           _status = AuthStatus.authenticated;
+          debugPrint('[AUTH] Session restored');
+          await loadProfile();
           await _syncWithFastApi();
         }
       } else {
@@ -108,7 +127,7 @@ class SupabaseAuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _handleAuthStateChange(AuthChangeEvent event, Session? session) {
+  void _handleAuthStateChange(AuthChangeEvent event, Session? session) async {
     if (event == AuthChangeEvent.signedIn && session != null) {
       final user = session.user;
       _userId = user.id;
@@ -121,7 +140,9 @@ class SupabaseAuthService extends ChangeNotifier {
         _status = AuthStatus.unverified;
       } else {
         _status = AuthStatus.authenticated;
-        _syncWithFastApi();
+        debugPrint('[AUTH] Session restored');
+        await loadProfile();
+        await _syncWithFastApi();
       }
       notifyListeners();
     } else if (event == AuthChangeEvent.signedOut) {
@@ -136,7 +157,8 @@ class SupabaseAuthService extends ChangeNotifier {
       final isConfirmed = user.emailConfirmedAt != null;
       if (isConfirmed && _status == AuthStatus.unverified) {
         _status = AuthStatus.authenticated;
-        _syncWithFastApi();
+        await loadProfile();
+        await _syncWithFastApi();
         notifyListeners();
       }
     }
@@ -192,6 +214,7 @@ class SupabaseAuthService extends ChangeNotifier {
       }
 
       _status = AuthStatus.authenticated;
+      await loadProfile();
       await _syncWithFastApi();
       notifyListeners();
       return true;
@@ -367,6 +390,7 @@ class SupabaseAuthService extends ChangeNotifier {
       // In mock/test mode, confirm verification immediately on refresh
       _status = AuthStatus.authenticated;
       _accessToken ??= 'mock-token-${_userId ?? "00000000-0000-0000-0000-000000000002"}';
+      await loadProfile();
       await _syncWithFastApi();
       notifyListeners();
       return true;
@@ -380,6 +404,7 @@ class SupabaseAuthService extends ChangeNotifier {
         if (isConfirmed) {
           _status = AuthStatus.authenticated;
           _accessToken = client.auth.currentSession?.accessToken;
+          await loadProfile();
           await _syncWithFastApi();
           notifyListeners();
           return true;
@@ -408,6 +433,130 @@ class SupabaseAuthService extends ChangeNotifier {
     _role = 'PEOPLE';
     _accessToken = null;
     _errorMessage = null;
+    _isProfileLoading = false;
+    _preferredLanguage = null;
+    _consentAccepted = false;
+    _consentVersion = null;
+    _onboardingCompleted = false;
+  }
+
+  /// Load user profile and onboarding progress from Supabase `public.profiles`.
+  Future<void> loadProfile({bool notify = true}) async {
+    final client = _supabase;
+    final uid = _userId;
+    if (client == null || uid == null) return;
+
+    _isProfileLoading = true;
+    if (notify) notifyListeners();
+
+    debugPrint('[PROFILE] Loading profile: $uid');
+
+    try {
+      final List<dynamic> rows = await client
+          .from('profiles')
+          .select('id, email, full_name, role, preferred_language, consent_accepted, consent_version, onboarding_completed')
+          .eq('id', uid)
+          .limit(1);
+
+      if (rows.isNotEmpty) {
+        final data = rows.first as Map<String, dynamic>;
+        _displayName = data['full_name'] as String? ?? _displayName;
+        if (data['role'] != null) {
+          final dbRole = (data['role'] as String).toUpperCase();
+          if (dbRole == 'ADMIN' || dbRole == 'PEOPLE') {
+            _role = dbRole;
+          }
+        }
+        _preferredLanguage = data['preferred_language'] as String?;
+        _consentAccepted = data['consent_accepted'] == true;
+        _consentVersion = data['consent_version'] as String?;
+        _onboardingCompleted = data['onboarding_completed'] == true;
+
+        if (_preferredLanguage != null && _preferredLanguage!.isNotEmpty) {
+          AppStateService.instance.setLanguageDirectly(_preferredLanguage!);
+        }
+        if (_consentAccepted) {
+          AppStateService.instance.setConsentAgreedDirectly(_consentAccepted);
+        }
+
+        debugPrint('[PROFILE] Profile loaded');
+        debugPrint('[ONBOARDING] Preferred language: ${_preferredLanguage ?? "none"}');
+        debugPrint('[ONBOARDING] Consent accepted: $_consentAccepted');
+        debugPrint('[ONBOARDING] Completed: $_onboardingCompleted');
+      } else {
+        // Safe profile creation if record is missing
+        debugPrint('[PROFILE] Profile missing for $uid. Creating safe default profile.');
+        await client.from('profiles').upsert({
+          'id': uid,
+          'email': _email,
+          'full_name': _displayName ?? 'Citizen',
+          'role': _role,
+          'preferred_language': null,
+          'consent_accepted': false,
+          'consent_version': null,
+          'onboarding_completed': false,
+        });
+        _preferredLanguage = null;
+        _consentAccepted = false;
+        _consentVersion = null;
+        _onboardingCompleted = false;
+      }
+    } catch (e) {
+      debugPrint('[PROFILE] Failed to load profile ($e)');
+    } finally {
+      _isProfileLoading = false;
+      if (notify) notifyListeners();
+    }
+  }
+
+  /// Persist chosen language to Supabase `profiles` table.
+  Future<bool> saveLanguage(String language) async {
+    final client = _supabase;
+    final uid = _userId;
+    _preferredLanguage = language;
+    AppStateService.instance.setLanguage(language);
+    debugPrint('[ONBOARDING] Saving preferred language: $language');
+
+    if (client != null && uid != null) {
+      try {
+        await client.from('profiles').update({
+          'preferred_language': language,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', uid);
+        debugPrint('[ONBOARDING] Preferred language saved: $language');
+      } catch (e) {
+        debugPrint('[ONBOARDING] Error saving preferred language to DB: $e');
+      }
+    }
+    notifyListeners();
+    return true;
+  }
+
+  /// Persist consent agreement and mark onboarding complete in Supabase `profiles` table.
+  Future<bool> saveConsent({String consentVersion = 'v1.0'}) async {
+    final client = _supabase;
+    final uid = _userId;
+    _consentAccepted = true;
+    _consentVersion = consentVersion;
+    _onboardingCompleted = true;
+    AppStateService.instance.setConsentAgreed(true);
+    debugPrint('[ONBOARDING] Consent accepted: true');
+
+    if (client != null && uid != null) {
+      try {
+        await client.from('profiles').update({
+          'consent_accepted': true,
+          'consent_version': consentVersion,
+          'onboarding_completed': true,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', uid);
+        debugPrint('[ONBOARDING] Completed: true');
+      } catch (e) {
+        debugPrint('[ONBOARDING] Error saving consent to DB: $e');
+      }
+    }
+    notifyListeners();
+    return true;
   }
 
   /// Synchronize authenticated Supabase identity with PostgreSQL via FastAPI.

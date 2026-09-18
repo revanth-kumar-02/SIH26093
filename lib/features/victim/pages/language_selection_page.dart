@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/routes/route_paths.dart';
 import '../../../../core/services/app_state_service.dart';
+import '../../../../core/services/supabase_auth_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class LanguageItem {
@@ -323,9 +324,12 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      onPressed: () {
-                        AppStateService.instance.setLanguage(_selectedLanguage);
-                        context.go(RoutePaths.consent);
+                      onPressed: () async {
+                        await SupabaseAuthService.instance.saveLanguage(_selectedLanguage);
+                        if (context.mounted) {
+                          debugPrint('[ROUTER] Routing to CONSENT');
+                          context.go(RoutePaths.consent);
+                        }
                       },
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,

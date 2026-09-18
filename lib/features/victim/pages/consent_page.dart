@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/routes/route_paths.dart';
 import '../../../../core/services/app_state_service.dart';
+import '../../../../core/services/supabase_auth_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
 /// Screen 4: Consent & Privacy (Redesigned) â€” Source of Truth from Stitch.
@@ -348,9 +349,12 @@ class _ConsentPageState extends State<ConsentPage> {
                         ),
                       ),
                                             onPressed: _agreed
-                          ? () {
-                              AppStateService.instance.setConsentAgreed(true);
-                              context.go(RoutePaths.home);
+                          ? () async {
+                              await SupabaseAuthService.instance.saveConsent(consentVersion: 'v1.0');
+                              if (context.mounted) {
+                                debugPrint('[ROUTER] Routing to HOME');
+                                context.go(RoutePaths.home);
+                              }
                             }
                           : null,
                       child: const Row(

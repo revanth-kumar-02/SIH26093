@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_strings.dart';
+import '../../core/routes/route_paths.dart';
+import '../../core/services/app_state_service.dart';
+import '../../core/services/supabase_auth_service.dart';
 import '../../core/theme/app_colors.dart';
 
 /// Top App Bar matching the discreet Sanctuary Header from Stitch.
@@ -119,6 +123,103 @@ class SanctuaryHeader extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
+  void _showProfileModal(BuildContext context) {
+    final auth = SupabaseAuthService.instance;
+    final lang = auth.preferredLanguage ?? AppStateService.instance.selectedLanguage;
+    final consentStr = auth.consentAccepted ? 'Accepted (${auth.consentVersion ?? "v1.0"})' : 'Pending';
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'User Profile',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.onSurface,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20, color: AppColors.onSurfaceVariant),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildProfileRow('Full Name', auth.displayName ?? 'Citizen / Complainant'),
+              _buildProfileRow('Email', auth.email ?? 'Not available'),
+              _buildProfileRow('Preferred Language', lang),
+              _buildProfileRow('Role', auth.role),
+              _buildProfileRow('Consent Status', consentStr),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.tertiary,
+                    side: const BorderSide(color: AppColors.tertiary),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.logout, size: 18),
+                  label: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await SupabaseAuthService.instance.signOut();
+                    if (context.mounted) {
+                      context.go(RoutePaths.login);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: AppColors.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppBar(
@@ -218,14 +319,18 @@ class SanctuaryHeader extends StatelessWidget implements PreferredSizeWidget {
           const SizedBox(width: 8),
         ],
         if (actions == null && showProfile) ...[
-          Container(
-            width: 30,
-            height: 30,
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
+          InkWell(
+            onTap: () => _showProfileModal(context),
+            borderRadius: BorderRadius.circular(999),
+            child: Container(
+              width: 30,
+              height: 30,
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.person, color: Colors.white, size: 16),
             ),
-            child: const Icon(Icons.person, color: Colors.white, size: 16),
           ),
           const SizedBox(width: 14),
         ],

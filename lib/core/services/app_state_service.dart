@@ -108,6 +108,15 @@ class AppStateService extends ChangeNotifier {
     }
   }
 
+  void setLanguageDirectly(String lang) {
+    if (_selectedLanguage != lang) {
+      _selectedLanguage = lang;
+      AppStrings.setLocale(currentLanguageCode);
+      _persistLanguage(lang);
+      notifyListeners();
+    }
+  }
+
   // --- Chat State (Clean Initial State, No Hardcoded Pre-Existing User Text) ---
   final List<ChatMessage> _messages = [
     const ChatMessage(
@@ -392,6 +401,11 @@ class AppStateService extends ChangeNotifier {
     if (agreed) {
       initBackendSession();
     }
+    notifyListeners();
+  }
+
+  void setConsentAgreedDirectly(bool agreed) {
+    _consentAgreed = agreed;
     notifyListeners();
   }
 
