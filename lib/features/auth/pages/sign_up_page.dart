@@ -302,14 +302,16 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
                     const SizedBox(height: 22),
 
-                    // Submit Button (46dp height)
+                    // Submit Button (48dp height)
                     SizedBox(
-                      height: 46,
+                      height: 48,
+                      width: double.infinity,
                       child: FilledButton(
                         onPressed: _isLoading ? null : _handleSignUp,
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.primaryContainer,
                           foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),
@@ -326,8 +328,6 @@ class _SignUpPageState extends State<SignUpPage> {
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.1,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                       ),
                     ),

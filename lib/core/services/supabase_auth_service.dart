@@ -150,8 +150,10 @@ class SupabaseAuthService extends ChangeNotifier {
 
     final client = _supabase;
     if (client == null) {
-      // Mock / Offline dev fallback
-      return _mockSignIn(email, password);
+      _status = AuthStatus.error;
+      _errorMessage = 'Authentication service is unavailable. Please try again later.';
+      notifyListeners();
+      return false;
     }
 
     try {
@@ -165,15 +167,22 @@ class SupabaseAuthService extends ChangeNotifier {
 
       if (user == null || session == null) {
         _status = AuthStatus.error;
-        _errorMessage = 'Authentication failed. Please check your credentials.';
+        _errorMessage = 'Incorrect email or password.';
         notifyListeners();
         return false;
       }
 
       _userId = user.id;
       _email = user.email;
-      _displayName = (user.userMetadata?['display_name'] ?? _email?.split('@').first) as String?;
+      _displayName = (user.userMetadata?['display_name'] ?? user.userMetadata?['full_name'] ?? _email?.split('@').first) as String?;
       _accessToken = session.accessToken;
+
+      final roleMeta = (user.userMetadata?['role'] as String?)?.toUpperCase();
+      if (roleMeta == 'ADMIN' || _email?.toLowerCase() == 'admin@nhaa.gov.in') {
+        _role = 'ADMIN';
+      } else {
+        _role = 'PEOPLE';
+      }
 
       final isConfirmed = user.emailConfirmedAt != null;
       if (!isConfirmed) {
@@ -188,16 +197,12 @@ class SupabaseAuthService extends ChangeNotifier {
       return true;
     } on AuthException catch (e) {
       _status = AuthStatus.error;
-      _errorMessage = e.message;
+      _errorMessage = _formatAuthException(e);
       notifyListeners();
       return false;
     } catch (e) {
-      // If network unreachable, check if dev credentials match
-      if (_isDevCredential(email, password)) {
-        return _mockSignIn(email, password);
-      }
       _status = AuthStatus.error;
-      _errorMessage = 'Unable to connect to authentication service. Please check your connection.';
+      _errorMessage = _formatGenericError(e);
       notifyListeners();
       return false;
     }
@@ -215,7 +220,7 @@ class SupabaseAuthService extends ChangeNotifier {
 
     final client = _supabase;
     if (client == null) {
-      // Mock / Offline dev fallback
+      // Mock / Offline test fallback
       _userId = 'mock-${DateTime.now().millisecondsSinceEpoch}';
       _email = email.trim();
       _displayName = name.trim();
@@ -231,6 +236,7 @@ class SupabaseAuthService extends ChangeNotifier {
         password: password,
         data: {
           'display_name': name.trim(),
+          'full_name': name.trim(),
           'role': 'PEOPLE',
         },
       );
@@ -255,12 +261,12 @@ class SupabaseAuthService extends ChangeNotifier {
       return true;
     } on AuthException catch (e) {
       _status = AuthStatus.error;
-      _errorMessage = e.message;
+      _errorMessage = _formatAuthException(e);
       notifyListeners();
       return false;
     } catch (e) {
       _status = AuthStatus.error;
-      _errorMessage = 'Unable to register account. Please check your network connection.';
+      _errorMessage = _formatGenericError(e);
       notifyListeners();
       return false;
     }
@@ -271,18 +277,18 @@ class SupabaseAuthService extends ChangeNotifier {
     _errorMessage = null;
     final client = _supabase;
     if (client == null) {
-      return true; // Mock success
+      return true; // Mock success for test environments
     }
 
     try {
       await client.auth.resetPasswordForEmail(email.trim());
       return true;
     } on AuthException catch (e) {
-      _errorMessage = e.message;
+      _errorMessage = _formatAuthException(e);
       notifyListeners();
       return false;
     } catch (e) {
-      _errorMessage = 'Unable to send password reset email. Please try again.';
+      _errorMessage = _formatGenericError(e);
       notifyListeners();
       return false;
     }
@@ -303,14 +309,55 @@ class SupabaseAuthService extends ChangeNotifier {
       );
       return true;
     } on AuthException catch (e) {
-      _errorMessage = e.message;
+      _errorMessage = _formatAuthException(e);
       notifyListeners();
       return false;
     } catch (e) {
-      _errorMessage = 'Unable to resend verification email.';
+      _errorMessage = _formatGenericError(e);
       notifyListeners();
       return false;
     }
+  }
+
+  String _formatAuthException(AuthException e) {
+    final msg = e.message.toLowerCase();
+    if (msg.contains('invalid login credentials') ||
+        msg.contains('invalid credentials') ||
+        msg.contains('invalid grant')) {
+      return 'Incorrect email or password.';
+    }
+    if (msg.contains('email not confirmed') || msg.contains('unconfirmed')) {
+      return 'Please verify your email before signing in.';
+    }
+    if (msg.contains('user already registered') ||
+        msg.contains('already registered') ||
+        msg.contains('already exists')) {
+      return 'An account with this email already exists.';
+    }
+    if (msg.contains('rate limit') || msg.contains('over_email_send_rate_limit')) {
+      return 'Email rate limit reached. Please wait a few moments before trying again.';
+    }
+    if (msg.contains('password should be at least')) {
+      return 'Password must be at least 6 characters.';
+    }
+    if (msg.contains('email address') && msg.contains('invalid')) {
+      return 'Please enter a valid email address.';
+    }
+    return e.message;
+  }
+
+  String _formatGenericError(dynamic e) {
+    final s = e.toString().toLowerCase();
+    if (s.contains('socketexception') ||
+        s.contains('failed host lookup') ||
+        s.contains('clientexception') ||
+        s.contains('network') ||
+        s.contains('connection refused') ||
+        s.contains('handshakeexception') ||
+        s.contains('os error')) {
+      return 'Unable to connect right now. Please check your internet connection and try again.';
+    }
+    return 'Unable to connect to authentication service. Please try again.';
   }
 
   /// Check if the user has confirmed their email and update state.
@@ -393,42 +440,29 @@ class SupabaseAuthService extends ChangeNotifier {
     }
   }
 
-  bool _isDevCredential(String email, String pass) {
-    final cleanEmail = email.trim().toLowerCase();
-    return (cleanEmail == 'admin@nhaa.gov.in' || cleanEmail == 'admin_user') ||
-        (cleanEmail == 'people@nhaa.gov.in' || cleanEmail == 'people_user');
+  @visibleForTesting
+  void setSessionForTesting({
+    required String userId,
+    required String email,
+    required String role,
+    String? displayName,
+    String? token,
+    AuthStatus status = AuthStatus.authenticated,
+  }) {
+    _userId = userId;
+    _email = email;
+    _role = role.toUpperCase();
+    _displayName = displayName ?? email.split('@').first;
+    _accessToken = token ?? 'test-token';
+    _status = status;
+    notifyListeners();
   }
 
-  Future<bool> _mockSignIn(String email, String password) async {
-    final clean = email.trim().toLowerCase();
-    if (clean == 'admin@nhaa.gov.in' || clean == 'admin_user') {
-      _userId = '00000000-0000-0000-0000-000000000001';
-      _email = 'admin@nhaa.gov.in';
-      _displayName = 'System Administrator';
-      _role = 'ADMIN';
-      _accessToken = 'mock-supabase-admin-token';
-      _status = AuthStatus.authenticated;
-      notifyListeners();
-      return true;
-    } else if (clean == 'people@nhaa.gov.in' || clean == 'people_user' || clean.contains('victim')) {
-      _userId = '00000000-0000-0000-0000-000000000002';
-      _email = 'people@nhaa.gov.in';
-      _displayName = 'Citizen / Complainant';
-      _role = 'PEOPLE';
-      _accessToken = 'mock-supabase-people-token';
-      _status = AuthStatus.authenticated;
-      notifyListeners();
-      return true;
-    } else {
-      // Any other valid email in mock mode
-      _userId = '00000000-0000-0000-0000-000000000003';
-      _email = email.trim();
-      _displayName = email.split('@').first;
-      _role = 'PEOPLE';
-      _accessToken = 'mock-supabase-user-token';
-      _status = AuthStatus.authenticated;
-      notifyListeners();
-      return true;
-    }
+  @visibleForTesting
+  void resetForTesting() {
+    _clearState();
+    _status = AuthStatus.unauthenticated;
+    _errorMessage = null;
+    notifyListeners();
   }
 }

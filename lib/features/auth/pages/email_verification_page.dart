@@ -202,14 +202,16 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                     const SizedBox(height: 18),
                   ],
 
-                  // Continue / Verify Button (46dp height)
+                  // Continue / Verify Button (48dp height)
                   SizedBox(
-                    height: 46,
+                    height: 48,
+                    width: double.infinity,
                     child: FilledButton(
                       onPressed: _isChecking ? null : _checkVerification,
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primaryContainer,
                         foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
@@ -232,14 +234,16 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Resend Verification Button (46dp height)
+                  // Resend Verification Button (48dp height)
                   SizedBox(
-                    height: 46,
+                    height: 48,
+                    width: double.infinity,
                     child: OutlinedButton(
                       onPressed: _isResending ? null : _resendVerification,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
                         side: BorderSide(color: AppColors.primarySage.withValues(alpha: 0.5)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: _isResending

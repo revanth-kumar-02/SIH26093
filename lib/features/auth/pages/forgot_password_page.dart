@@ -156,12 +156,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       ),
                       const SizedBox(height: 24),
                       SizedBox(
-                        height: 46,
+                        height: 48,
+                        width: double.infinity,
                         child: FilledButton(
                           onPressed: () => context.go(RoutePaths.login),
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.primaryContainer,
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           child: const Text('Return to Sign In', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
@@ -234,14 +236,16 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Send Reset Link Button (46dp height)
+                      // Send Reset Link Button (48dp height)
                       SizedBox(
-                        height: 46,
+                        height: 48,
+                        width: double.infinity,
                         child: FilledButton(
                           onPressed: _isLoading ? null : _handleResetPassword,
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.primaryContainer,
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
                           ),
@@ -258,8 +262,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: 0.1,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
                         ),
                       ),

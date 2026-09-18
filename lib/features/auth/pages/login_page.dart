@@ -270,14 +270,16 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 18),
 
-                    // Sign In Button (46dp height)
+                    // Sign In Button (48dp height)
                     SizedBox(
-                      height: 46,
+                      height: 48,
+                      width: double.infinity,
                       child: FilledButton(
                         onPressed: _isLoading ? null : _handleSignIn,
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.primaryContainer,
                           foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),
@@ -294,20 +296,20 @@ class _LoginPageState extends State<LoginPage> {
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.1,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
 
                     // Create Account Button
                     SizedBox(
-                      height: 46,
+                      height: 48,
+                      width: double.infinity,
                       child: OutlinedButton(
                         onPressed: () => context.push(RoutePaths.register),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                           side: BorderSide(color: AppColors.primarySage.withValues(alpha: 0.5)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -317,8 +319,6 @@ class _LoginPageState extends State<LoginPage> {
                             fontSize: 14.5,
                             fontWeight: FontWeight.w600,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),

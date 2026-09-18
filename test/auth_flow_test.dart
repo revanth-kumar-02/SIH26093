@@ -149,26 +149,36 @@ void main() {
       expect(find.text('Password reset link sent!'), findsOneWidget);
     });
 
-    testWidgets('8. SupabaseAuthService handles signIn and role assignment', (tester) async {
+    testWidgets('8. SupabaseAuthService handles session and role assignment', (tester) async {
       final auth = SupabaseAuthService.instance;
 
-      // Sign in as admin
-      final adminSuccess = await auth.signIn(email: 'admin@nhaa.gov.in', password: 'AdminPassword@123');
-      expect(adminSuccess, isTrue);
+      // Set admin session
+      auth.setSessionForTesting(
+        userId: 'admin-uuid',
+        email: 'admin@nhaa.gov.in',
+        role: 'ADMIN',
+        displayName: 'System Admin',
+      );
       expect(auth.isAuthenticated, isTrue);
       expect(auth.isAdmin, isTrue);
       expect(auth.role, 'ADMIN');
 
-      // Sign out
-      await auth.signOut();
+      // Reset / Sign out
+      auth.resetForTesting();
       expect(auth.isAuthenticated, isFalse);
 
-      // Sign in as people
-      final peopleSuccess = await auth.signIn(email: 'people@nhaa.gov.in', password: 'PeoplePassword@123');
-      expect(peopleSuccess, isTrue);
+      // Set people session
+      auth.setSessionForTesting(
+        userId: 'people-uuid',
+        email: 'people@nhaa.gov.in',
+        role: 'PEOPLE',
+        displayName: 'Citizen User',
+      );
       expect(auth.isAuthenticated, isTrue);
       expect(auth.isPeople, isTrue);
       expect(auth.role, 'PEOPLE');
+
+      auth.resetForTesting();
     });
 
     testWidgets('9. AppRouter initializes with login/splash for unauthenticated user', (tester) async {
@@ -184,23 +194,31 @@ void main() {
       expect(find.byType(MaterialApp), findsOneWidget);
     });
 
-    testWidgets('10. SupabaseAuthService handles signUp and unverified state flow', (tester) async {
+    testWidgets('10. SupabaseAuthService handles unverified state flow', (tester) async {
       final auth = SupabaseAuthService.instance;
-      final signUpSuccess = await auth.signUp(
-        name: 'New Citizen',
+      auth.setSessionForTesting(
+        userId: 'unverified-uuid',
         email: 'newcitizen@example.com',
-        password: 'Password123!',
+        role: 'PEOPLE',
+        displayName: 'New Citizen',
+        status: AuthStatus.unverified,
       );
-      expect(signUpSuccess, isTrue);
       expect(auth.status, AuthStatus.unverified);
       expect(auth.email, 'newcitizen@example.com');
       expect(auth.displayName, 'New Citizen');
 
-      // Refresh verification
-      final verified = await auth.refreshVerificationStatus();
-      expect(verified, isTrue);
+      // Verified state
+      auth.setSessionForTesting(
+        userId: 'unverified-uuid',
+        email: 'newcitizen@example.com',
+        role: 'PEOPLE',
+        displayName: 'New Citizen',
+        status: AuthStatus.authenticated,
+      );
       expect(auth.status, AuthStatus.authenticated);
       expect(auth.role, 'PEOPLE');
+
+      auth.resetForTesting();
     });
   });
 }

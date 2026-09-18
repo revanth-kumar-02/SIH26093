@@ -26,8 +26,8 @@ class SupabaseConfig {
     if (_envUrl.isNotEmpty) {
       return _envUrl;
     }
-    // Default development project URL
-    return 'https://sih26093-auth.supabase.co';
+    // Authoritative Supabase Project URL for TrueVoice (sih26093)
+    return 'https://wcuhsdhyyhdfglejcgcu.supabase.co';
   }
 
   /// Resolves the active Supabase Anon Key.
@@ -38,8 +38,8 @@ class SupabaseConfig {
     if (_envAnonKey.isNotEmpty) {
       return _envAnonKey;
     }
-    // Safe mock public anon key for dev testing
-    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpaDI2MDkzIiwicm9sZSI6ImFub24iLCJpYXQiOjE2MDAwMDAwMDAsImV4cCI6MTkwMDAwMDAwMH0.sih26093_public_anon_key_dev';
+    // Authoritative Supabase Public Anon Key
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjdWhzZGh5eWhkZmdsZWpjZ2N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MTU0MzIsImV4cCI6MjEwNTI5MTQzMn0.miFb_sgZZOjuGFXR_vpneT4fRtlPTE6I4ZaC7tItiJU';
   }
 
   /// Whether Supabase credentials are configured.
