@@ -12,6 +12,18 @@
 .swiftpm/
 migrate_working_dir/
 
+# Environment and Secrets
+.env
+*.env
+backend/.env
+backend/**/.env
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
 # IntelliJ related
 *.iml
 *.ipr

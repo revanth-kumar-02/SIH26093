@@ -26,7 +26,7 @@ from app.db.models.svi import SVIResultModel
 from app.db.models.recommendation import RecommendationModel
 from app.db.models.recommendation_review import RecommendationReview
 from app.db.models.audit import AuditEvent
-from app.core.auth import hash_password, create_access_token
+from app.core.auth import create_access_token
 from app.services.memory_service import memory_service
 
 client = TestClient(app)
@@ -38,7 +38,7 @@ def anyio_backend():
 def get_admin_headers() -> dict:
     resp = client.post("/api/v1/auth/login", json={
         "username": "admin_user",
-        "password": "AdminPassword@123"
+        "password": "dev-token-request"
     })
     token = resp.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
@@ -46,7 +46,7 @@ def get_admin_headers() -> dict:
 def get_people_headers() -> dict:
     resp = client.post("/api/v1/auth/login", json={
         "username": "people_user",
-        "password": "PeoplePassword@123"
+        "password": "dev-token-request"
     })
     token = resp.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
@@ -66,7 +66,6 @@ async def test_database_all_ten_entities_persistable():
         user = Responder(
             username=uid,
             email=f"{uid}@example.com",
-            password_hash=hash_password("SecurePassword@123"),
             display_name="Persistence Test User",
             role=UserRole.PEOPLE
         )

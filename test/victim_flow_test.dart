@@ -30,7 +30,7 @@ void main() {
 
     expect(find.text('You are safe to begin at your own pace.'), findsOneWidget);
     expect(find.text('Begin When Ready'), findsOneWidget);
-    expect(find.text('14566'), findsWidgets);
+    expect(find.text('9787872051'), findsWidgets);
   });
 
   testWidgets('LanguageSelectionPage renders languages and selection', (tester) async {
@@ -121,6 +121,6 @@ void main() {
     await tester.pump();
 
     expect(find.text('Dedicated Human Advocate'), findsOneWidget);
-    expect(find.text('Helpline 14566'), findsWidgets);
+    expect(find.text('Demo Support (9787872051)'), findsWidgets);
   });
 }

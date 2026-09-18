@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import os
 import sys
 from logging.config import fileConfig
@@ -59,6 +59,11 @@ async def run_async_migrations() -> None:
     await connectable.dispose()
 
 def run_migrations_online() -> None:
+    if sys.platform == "win32":
+        try:
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        except Exception:
+            pass
     asyncio.run(run_async_migrations())
 
 if context.is_offline_mode():

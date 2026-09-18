@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import String, DateTime, Enum as SAEnum, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.db.base import Base, get_uuid_column, utc_now
+from app.db.base import Base, get_uuid_column, get_foreign_uuid_column, utc_now
 
 if TYPE_CHECKING:
     from app.db.models.responder import Responder
@@ -33,18 +33,8 @@ class Case(Base):
     )
     language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     consent_status: Mapped[str] = mapped_column(String(50), default="CONSENT_GIVEN", nullable=False)
-    user_id: Mapped[Optional[str]] = mapped_column(
-        String(36),
-        ForeignKey("responders.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True
-    )
-    assigned_responder_id: Mapped[Optional[str]] = mapped_column(
-        String(36),
-        ForeignKey("responders.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True
-    )
+    user_id: Mapped[Optional[str]] = get_foreign_uuid_column("responders.id", nullable=True, ondelete="SET NULL")
+    assigned_responder_id: Mapped[Optional[str]] = get_foreign_uuid_column("responders.id", nullable=True, ondelete="SET NULL")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False, index=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

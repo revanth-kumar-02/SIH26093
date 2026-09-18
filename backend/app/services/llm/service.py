@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 from typing import Optional
 from app.services.llm.base import BaseLLMAssessmentAdapter
 from app.services.llm.gemma import GemmaAdapter, MockGemmaAdapter
@@ -50,4 +50,22 @@ class GemmaService:
         """
         return self._adapter.assess(input_data)
 
+    def generate_response(
+        self,
+        user_message: str,
+        conversation_history: list = None,
+        assessment: Optional[TraumaAssessment] = None,
+        language: str = "en",
+    ) -> str:
+        """Generate a trauma-informed, empathetic, victim-facing conversational response."""
+        if conversation_history is None:
+            conversation_history = []
+        return self._adapter.generate_response(
+            user_message=user_message,
+            conversation_history=conversation_history,
+            assessment=assessment,
+            language=language,
+        )
+
 gemma_service = GemmaService()
+

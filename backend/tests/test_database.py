@@ -40,7 +40,6 @@ def test_database_user_lifecycle():
             admin = Responder(
                 username="test_admin",
                 email="test_admin@nhaa.gov.in",
-                password_hash="$2b$12$synthetic_hashed_value",
                 display_name="Test Administrator",
                 role=UserRole.ADMIN,
                 is_active=True
@@ -48,7 +47,6 @@ def test_database_user_lifecycle():
             people = Responder(
                 username="test_people",
                 email="test_people@nhaa.gov.in",
-                password_hash="$2b$12$synthetic_hashed_value",
                 display_name="Test Citizen",
                 role=UserRole.PEOPLE,
                 is_active=True

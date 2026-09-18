@@ -138,7 +138,7 @@ async def get_case_detail(
         latest_conv = sorted(c.conversations, key=lambda cv: cv.started_at, reverse=True)[0]
         sorted_messages = sorted(latest_conv.messages, key=lambda m: m.timestamp)
         conv_summary = ConversationSummary(
-            session_id=latest_conv.session_id,
+            session_id=latest_conv.session_id or str(latest_conv.id),
             input_language=latest_conv.input_language,
             started_at=latest_conv.started_at,
             ended_at=latest_conv.ended_at,

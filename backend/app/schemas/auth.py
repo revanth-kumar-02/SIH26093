@@ -32,8 +32,13 @@ class ResponderRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class ResponderCreate(BaseModel):
+    id: Optional[str] = None
     username: str
     email: str
-    password: str
     display_name: str
     role: UserRole = UserRole.PEOPLE
+
+class SupabaseAuthSyncRequest(BaseModel):
+    access_token: str
+    display_name: Optional[str] = None
+

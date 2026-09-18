@@ -22,7 +22,7 @@ def get_json_type():
 def upgrade() -> None:
     # 1. Update cases table
     with op.batch_alter_table("cases", schema=None) as batch_op:
-        batch_op.add_column(sa.Column("user_id", sa.String(length=36), nullable=True))
+        batch_op.add_column(sa.Column("user_id", sa.String(length=36).with_variant(sa.UUID(), "postgresql"), nullable=True))
         batch_op.add_column(sa.Column("closed_at", sa.DateTime(timezone=True), nullable=True))
         batch_op.create_foreign_key("fk_cases_user_id_responders", "responders", ["user_id"], ["id"], ondelete="SET NULL")
         batch_op.create_index("ix_cases_user_status", ["user_id", "status"])
@@ -59,9 +59,9 @@ def upgrade() -> None:
     # 7. Create ai_signals table
     op.create_table(
         "ai_signals",
-        sa.Column("id", sa.String(length=36), nullable=False),
+        sa.Column("id", sa.String(length=36).with_variant(sa.UUID(), "postgresql"), nullable=False),
         sa.Column("session_id", sa.String(length=64), nullable=False),
-        sa.Column("message_id", sa.String(length=36), nullable=True),
+        sa.Column("message_id", sa.String(length=36).with_variant(sa.UUID(), "postgresql"), nullable=True),
         sa.Column("signal_type", sa.String(length=50), nullable=False),
         sa.Column("result", get_json_type(), nullable=False),
         sa.Column("confidence", sa.Float(), nullable=True),
@@ -78,9 +78,9 @@ def upgrade() -> None:
     # 8. Create recommendation_reviews table
     op.create_table(
         "recommendation_reviews",
-        sa.Column("id", sa.String(length=36), nullable=False),
-        sa.Column("recommendation_id", sa.String(length=36), nullable=False),
-        sa.Column("admin_id", sa.String(length=36), nullable=True),
+        sa.Column("id", sa.String(length=36).with_variant(sa.UUID(), "postgresql"), nullable=False),
+        sa.Column("recommendation_id", sa.String(length=36).with_variant(sa.UUID(), "postgresql"), nullable=False),
+        sa.Column("admin_id", sa.String(length=36).with_variant(sa.UUID(), "postgresql"), nullable=True),
         sa.Column("decision", sa.String(length=30), nullable=False),
         sa.Column("modified_recommendation", get_json_type(), nullable=True),
         sa.Column("review_notes", sa.Text(), nullable=True),

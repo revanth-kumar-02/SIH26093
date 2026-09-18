@@ -94,124 +94,38 @@ async def send_message(
     request: MessageSendRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    """Send a message in an existing session and receive an empathetic triage response.
+    """Send a message in an existing session and receive an empathetic, trauma-informed response.
     
-    Multimodal Text Pipeline:
+    Multimodal Pipeline:
     Text Message -> GoEmotions TER -> Text Emotion Signal (persisted to DB)
     Text Message -> Dreaddit Stress -> Stress Signal (persisted to DB)
-    Both signals and messages are persisted to PostgreSQL.
+    Bounded Context -> Gemma 3n E2B IT Multimodal Assessment (persisted to DB)
+    Assessment Indicators -> Deterministic SVI (persisted to DB)
+    SVI & Assessment -> Tailored Recommendations (persisted to DB)
+    Empathetic Grounded Response -> AI Message (persisted to DB)
     """
     session = session_service.get_session(session_id)
+    language = request.language or (session.get("language", "en") if session else "en")
     if not session:
-        # Check database
         stmt = select(Conversation).where(Conversation.session_id == session_id)
         res = await db.execute(stmt)
-        if not res.scalars().first():
+        conv = res.scalars().first()
+        if not conv:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Session not found"
             )
-        # Restore in-memory representation if DB has it
-        session_service._sessions[session_id] = {
-            "session_id": session_id,
-            "language": "en",
-            "status": "ACTIVE",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "messages": [],
-            "emotion_signals": [],
-            "stress_signals": [],
-            "transcripts": []
-        }
-        session = session_service.get_session(session_id)
-
-    now_iso = datetime.now(timezone.utc).isoformat()
-
-    # 1. Persist user's incoming message to DB
-    user_msg_db = await session_service.persist_message(
-        db=db,
-        session_id=session_id,
-        sender_type=MessageSenderType.VICTIM,
-        content=request.message,
-        input_source=MessageInputSource.TEXT,
-        language=session.get("language", "en")
-    )
-
-    # 2. Extract text emotion signal (GoEmotions)
-    try:
-        text_emotion_result = text_emotion_service.analyze(request.message)
-        emotion_signal = EmotionSignal(
-            signal_id=generate_message_id(),
-            session_id=session_id,
-            source="text",
-            timestamp=now_iso,
-            text_emotion=text_emotion_result,
-            metadata={
-                "model": text_emotion_result.model_version,
-                "latency_ms": text_emotion_result.duration_ms,
-                "device": text_emotion_result.device
-            }
-        )
-        session_service.add_emotion_signal(session_id, emotion_signal)
-        
-        # Persist to DB
-        await session_service.persist_ai_signal(
-            db=db,
-            session_id=session_id,
-            message_id=user_msg_db.id if user_msg_db else None,
-            signal_type="TEXT_EMOTION",
-            result=text_emotion_result.model_dump(),
-            confidence=text_emotion_result.emotions[0].score if text_emotion_result.emotions else None,
-            model_name="SamLowe/roberta-base-go_emotions",
-            model_version=text_emotion_result.model_version
-        )
-    except Exception as ex:
-        logger.warning(f"Text emotion extraction skipped or failed: {ex}")
-
-    # 3. Extract stress signal (MentalBERT Dreaddit)
-    try:
-        stress_result = stress_detection_service.analyze(request.message)
-        stress_signal = StressSignal(
-            signal_id=generate_message_id(),
-            session_id=session_id,
-            source="text",
-            timestamp=now_iso,
-            stress=stress_result,
-            model_version=stress_result.model_version,
-            metadata={
-                "latency_ms": stress_result.duration_ms,
-                "device": stress_result.device
-            }
-        )
-        session_service.add_stress_signal(session_id, stress_signal)
-
-        # Persist to DB
-        await session_service.persist_ai_signal(
-            db=db,
-            session_id=session_id,
-            message_id=user_msg_db.id if user_msg_db else None,
-            signal_type="STRESS",
-            result=stress_result.model_dump(),
-            confidence=stress_result.score,
-            model_name="jtvallente/mentalbert_dreaddit_best",
-            model_version=stress_result.model_version
-        )
-    except Exception as ex:
-        logger.warning(f"Stress detection on message skipped or failed: {ex}")
+        if not request.language:
+            language = conv.input_language or "en"
 
     try:
-        msg_resp = session_service.process_message(session_id=session_id, message=request.message)
-        
-        # Persist system response to DB
-        await session_service.persist_message(
+        return await session_service.process_incoming_interaction(
             db=db,
             session_id=session_id,
-            sender_type=MessageSenderType.SYSTEM,
-            content=msg_resp.response,
-            input_source=MessageInputSource.AI,
-            language=session.get("language", "en")
+            message=request.message,
+            input_source=MessageInputSource.TEXT,
+            language=language
         )
-
-        return msg_resp
     except KeyError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

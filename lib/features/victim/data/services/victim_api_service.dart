@@ -1,4 +1,4 @@
-﻿import '../../../../core/network/api_client.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_config.dart';
 import '../models/api_models.dart';
 
@@ -45,14 +45,19 @@ class VictimApiService {
     }
   }
 
-  /// Send message to backend and receive mock AI response
+  /// Send message to backend and receive empathetic AI response
   Future<BackendChatMessage> sendMessage({
     required String sessionId,
     required String message,
+    String? language,
   }) async {
+    final body = <String, dynamic>{'message': message};
+    if (language != null && language.isNotEmpty) {
+      body['language'] = language;
+    }
     final res = await _client.post(
       ApiConfig.sessionMessagesUrl(sessionId),
-      body: {'message': message},
+      body: body,
     );
     return BackendChatMessage.fromJson(res);
   }

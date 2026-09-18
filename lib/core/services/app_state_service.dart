@@ -1,6 +1,8 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../shared/models/chat_message.dart';
 import '../../shared/models/intake_draft.dart';
+import '../constants/app_strings.dart';
 import '../network/api_exceptions.dart';
 import '../../features/victim/data/models/api_models.dart';
 import '../../features/victim/data/services/victim_api_service.dart';
@@ -9,7 +11,9 @@ import '../../features/victim/data/services/victim_api_service.dart';
 /// across the victim intake journey, synchronized with FastAPI backend.
 class AppStateService extends ChangeNotifier {
   static final AppStateService instance = AppStateService._internal();
-  AppStateService._internal();
+  AppStateService._internal() {
+    _loadPersistedLanguage();
+  }
 
   final VictimApiService _apiService = VictimApiService();
 
@@ -73,9 +77,30 @@ class AppStateService extends ChangeNotifier {
   String _selectedLanguage = 'English';
   String get selectedLanguage => _selectedLanguage;
 
+  Future<void> _loadPersistedLanguage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('nhaa_selected_language');
+      if (saved != null && saved.isNotEmpty) {
+        _selectedLanguage = saved;
+        AppStrings.setLocale(currentLanguageCode);
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _persistLanguage(String lang) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('nhaa_selected_language', lang);
+    } catch (_) {}
+  }
+
   void setLanguage(String lang) {
     if (_selectedLanguage != lang) {
       _selectedLanguage = lang;
+      AppStrings.setLocale(currentLanguageCode);
+      _persistLanguage(lang);
       // Refresh session language with backend
       _sessionId = null;
       initBackendSession();
@@ -112,12 +137,14 @@ class AppStateService extends ChangeNotifier {
     notifyListeners();
 
     // Ensure active backend session
+    // Ensure active backend session
     if (_sessionId == null || _sessionId!.startsWith('local-')) {
       try {
         final session = await _apiService.createSession(language: currentLanguageCode);
         _sessionId = session.sessionId;
-      } catch (_) {
-        // Fall back to local simulation
+        debugPrint('[AppStateService] Connected to backend session: $_sessionId');
+      } catch (e) {
+        debugPrint('[AppStateService] Backend session init failed ($e); using local mode');
       }
     }
 
@@ -126,6 +153,7 @@ class AppStateService extends ChangeNotifier {
         final response = await _apiService.sendMessage(
           sessionId: _sessionId!,
           message: trimmed,
+          language: currentLanguageCode,
         );
 
         _messages.add(
@@ -138,7 +166,8 @@ class AppStateService extends ChangeNotifier {
         );
         notifyListeners();
         return;
-      } on SessionNotFoundException {
+      } on SessionNotFoundException catch (e) {
+        debugPrint('[AppStateService] SessionNotFoundException: $e');
         _sessionId = null;
         _messages.add(
           ChatMessage(
@@ -151,6 +180,7 @@ class AppStateService extends ChangeNotifier {
         notifyListeners();
         return;
       } on ApiException catch (e) {
+        debugPrint('[AppStateService] ApiException: ${e.userMessage} (${e.technicalDetails})');
         _messages.add(
           ChatMessage(
             id: 'asst-err-${DateTime.now().millisecondsSinceEpoch}',
@@ -161,7 +191,8 @@ class AppStateService extends ChangeNotifier {
         );
         notifyListeners();
         return;
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[AppStateService] Unhandled network error: $e');
         _messages.add(
           ChatMessage(
             id: 'asst-err-${DateTime.now().millisecondsSinceEpoch}',
@@ -211,24 +242,48 @@ class AppStateService extends ChangeNotifier {
   }
 
   void _generateEmpatheticResponse(String userText) {
-    final lower = userText.toLowerCase();
+    final lower = userText.toLowerCase().trim();
+
+    final isGibberishOrUnclear = (lower.split(RegExp(r'\s+')).length == 1 &&
+            lower.length > 4 &&
+            !['hello', 'scared', 'afraid', 'shelter', 'danger', 'threat', 'help', 'ready'].contains(lower)) ||
+        RegExp(r'[bcdfghjklmnpqrstvwxyz]{5,}').hasMatch(lower);
 
     String reply;
-    if (lower.contains('shelter') || lower.contains('stay') || lower.contains('unsafe') || lower.contains('hostel')) {
+    if (isGibberishOrUnclear) {
       reply =
-          "Thank you for trusting us with this. Your immediate safety is our utmost priority. We have verified emergency shelter options and advocates ready to ensure you have a secure place tonight. Would you like to view emergency shelter resources or speak directly with an advocate?";
-    } else if (lower.contains('threat') || lower.contains('call') || lower.contains('message') || lower.contains('harass')) {
+          "I didn't quite catch that, but I'm right here with you. Please take all the time you need—you can type or speak whenever you feel ready, and share only what feels safe.";
+    } else if (lower.contains('friend') || lower.contains('stay with') || lower.contains('can stay')) {
       reply =
-          "I am so sorry you are having to endure this intimidation. You do not have to carry this alone. We can document these incidents securely with timestamps and connect you with trauma-informed legal and psychological counselors.";
-    } else if (lower.contains('anonymous') || lower.contains('privacy') || lower.contains('secret')) {
+          "Having a supportive friend and a safe place to go is an important step. You are in complete control of your next steps. Would you like to explore additional safety planning or confidential resources while you're there?";
+    } else if (lower.contains('anonymous') || lower.contains('privacy') || lower.contains('secret') || lower.contains('confidential')) {
       reply =
-          "Understood completely. Everything shared here is encrypted with strict zero-knowledge protocols. You can proceed with full anonymity, and your identity will remain protected.";
-    } else if (lower.contains('legal') || lower.contains('law') || lower.contains('court') || lower.contains('police')) {
+          "Yes, this conversation is completely confidential and protected with end-to-end trauma-informed privacy protocols. You are in full control of what you share, and your identity remains protected.";
+    } else if (lower.contains('shelter') || lower.contains('stay tonight') || lower.contains('home tonight') || lower.contains('unsafe') || lower.contains('hostel') || lower.contains('danger') || lower.contains('threat')) {
       reply =
-          "We can coordinate confidential pro-bono legal support and rights advisement under the National Helpline Against Atrocities (NHAA) framework whenever you feel prepared.";
+          "Thank you for trusting us with this. Your immediate safety is our utmost priority. We have verified emergency shelter options and advocates ready. If you need urgent assistance tonight, please contact our Demo Support line at 9787872051.";
+    } else if (lower.contains('legal') || lower.contains('law') || lower.contains('court') || lower.contains('police') || lower.contains('fir')) {
+      reply =
+          "We can coordinate confidential pro-bono legal support and rights advisement under the National Helpline Against Atrocities (NHAA) framework whenever you feel ready.";
+    } else if (lower.contains('hi') || lower.contains('hello') || lower.contains("i'm ") || lower.contains("i am ") || lower.contains("my name")) {
+      String namePart = "";
+      for (final prefix in ["i'm ", "i am ", "my name is ", "im "]) {
+        if (lower.contains(prefix)) {
+          final after = lower.split(prefix).last.trim().split(RegExp(r'\s+')).first.replaceAll(RegExp(r'[.,!?]'), '');
+          if (after.isNotEmpty && !['here', 'scared', 'tired', 'fine', 'ready', 'feeling'].contains(after)) {
+            namePart = ", ${after[0].toUpperCase()}${after.substring(1)}";
+            break;
+          }
+        }
+      }
+      reply =
+          "Hello$namePart. You are in a safe, confidential space. You can share as much or as little as you'd like, whenever you're ready. How can we support you today?";
+    } else if (lower.contains('scared') || lower.contains('fear') || lower.contains('panic') || lower.contains('hurt') || lower.contains('terrified')) {
+      reply =
+          "It sounds like you're going through something really frightening right now, and I want you to know you don't have to face this alone. Can you tell me a little more about what's been happening, whenever you feel ready?";
     } else {
       reply =
-          "Thank you for sharing this. Take all the time you need. Our system is carefully organizing your experience so our trained human advocates can provide compassionate, tailored assistance.";
+          "Thank you for sharing this with us. We are listening closely, and you can share at your own pace. How can we best assist you right now?";
     }
 
     Future.delayed(const Duration(milliseconds: 600), () {

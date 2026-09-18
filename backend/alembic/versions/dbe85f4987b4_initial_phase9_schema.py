@@ -25,7 +25,6 @@ def upgrade() -> None:
     sa.Column('id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=False),
     sa.Column('username', sa.String(length=100), nullable=False),
     sa.Column('email', sa.String(length=255), nullable=False),
-    sa.Column('password_hash', sa.String(length=255), nullable=False),
     sa.Column('display_name', sa.String(length=150), nullable=False),
     sa.Column('role', sa.Enum('RESPONDER', 'SUPERVISOR', 'ADMIN', name='responder_role', native_enum=False), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
@@ -45,7 +44,7 @@ def upgrade() -> None:
     sa.Column('status', sa.Enum('NEW', 'IN_REVIEW', 'AWAITING_RESPONDER_ACTION', 'ACTION_RECORDED', 'CLOSED', name='case_status', native_enum=False), nullable=False),
     sa.Column('language', sa.String(length=10), nullable=False),
     sa.Column('consent_status', sa.String(length=50), nullable=False),
-    sa.Column('assigned_responder_id', sa.String(length=36), nullable=True),
+    sa.Column('assigned_responder_id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['assigned_responder_id'], ['responders.id'], ondelete='SET NULL'),
@@ -60,8 +59,8 @@ def upgrade() -> None:
 
     op.create_table('assessments',
     sa.Column('id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=False),
-    sa.Column('case_id', sa.String(length=36), nullable=False),
-    sa.Column('assessment_version', sa.String(length=20), nullable=False),
+    sa.Column('case_id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=False),
+    sa.Column('assessment_version', sa.String(length=50), nullable=False),
     sa.Column('assessment_payload', sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), 'postgresql'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['case_id'], ['cases.id'], ondelete='CASCADE'),
@@ -74,7 +73,7 @@ def upgrade() -> None:
 
     op.create_table('audit_events',
     sa.Column('id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=False),
-    sa.Column('case_id', sa.String(length=36), nullable=True),
+    sa.Column('case_id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=True),
     sa.Column('actor_id', sa.String(length=100), nullable=False),
     sa.Column('actor_type', sa.String(length=50), nullable=False),
     sa.Column('event_type', sa.String(length=80), nullable=False),
@@ -94,7 +93,7 @@ def upgrade() -> None:
 
     op.create_table('conversations',
     sa.Column('id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=False),
-    sa.Column('case_id', sa.String(length=36), nullable=False),
+    sa.Column('case_id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=False),
     sa.Column('session_id', sa.String(length=64), nullable=False),
     sa.Column('started_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('ended_at', sa.DateTime(timezone=True), nullable=True),
@@ -110,7 +109,7 @@ def upgrade() -> None:
 
     op.create_table('recommendations',
     sa.Column('id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=False),
-    sa.Column('case_id', sa.String(length=36), nullable=False),
+    sa.Column('case_id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=False),
     sa.Column('category', sa.String(length=50), nullable=False),
     sa.Column('priority', sa.String(length=20), nullable=False),
     sa.Column('reason', sa.Text(), nullable=False),
@@ -135,7 +134,7 @@ def upgrade() -> None:
 
     op.create_table('svi_results',
     sa.Column('id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=False),
-    sa.Column('case_id', sa.String(length=36), nullable=False),
+    sa.Column('case_id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=False),
     sa.Column('svi_version', sa.String(length=20), nullable=False),
     sa.Column('score', sa.Float(), nullable=False),
     sa.Column('risk_category', sa.String(length=20), nullable=False),
@@ -156,7 +155,7 @@ def upgrade() -> None:
 
     op.create_table('messages',
     sa.Column('id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=False),
-    sa.Column('conversation_id', sa.String(length=36), nullable=False),
+    sa.Column('conversation_id', sa.String(length=36).with_variant(sa.UUID(), 'postgresql'), nullable=False),
     sa.Column('sender_type', sa.Enum('VICTIM', 'SYSTEM', 'RESPONDER', name='message_sender_type', native_enum=False), nullable=False),
     sa.Column('input_source', sa.Enum('TEXT', 'VOICE', name='message_input_source', native_enum=False), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/routes/route_paths.dart';
 import '../../../../core/services/app_state_service.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -375,26 +376,38 @@ class _AiChatPageState extends State<AiChatPage> {
                 ),
               ),
 
-                // Prompt Suggestion Chips
-                SizedBox(
-                  height: 38,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _promptSuggestions.length,
-                    separatorBuilder: (context, index) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final prompt = _promptSuggestions[index];
-                      return ActionChip(
-                        backgroundColor: AppColors.surfaceContainerLow,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                        label: Text(
-                          prompt,
-                          style: const TextStyle(fontSize: 12, color: AppColors.onSurface),
+                // Prompt Suggestion Chips - Responsive Horizontal Scroll without clipping
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: _promptSuggestions.map((prompt) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ActionChip(
+                          backgroundColor: AppColors.surfaceContainerLow,
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999),
+                            side: BorderSide(
+                              color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          label: Text(
+                            prompt,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.onSurface,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          onPressed: () => _sendMessage(prompt),
                         ),
-                        onPressed: () => _sendMessage(prompt),
                       );
-                    },
+                    }).toList(),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -420,13 +433,25 @@ class _AiChatPageState extends State<AiChatPage> {
                         controller: _textController,
                         maxLines: 3,
                         minLines: 1,
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          color: AppColors.onSurface, // Deep Charcoal (#191C1A)
+                          fontWeight: FontWeight.w400,
+                          height: 1.45,
+                        ),
+                        cursorColor: AppColors.primary,
+                        cursorWidth: 2.0,
+                        selectionControls: MaterialTextSelectionControls(),
                         decoration: InputDecoration(
                           hintText: _isListening
-                              ? 'Listening gently... Take your time.'
-                              : 'Type your thoughts here at your own pace...',
+                              ? AppStrings.tr('chat_listening')
+                              : AppStrings.tr('chat_hint'),
                           hintStyle: TextStyle(
                             fontSize: 13.5,
-                            color: _isListening ? AppColors.primary : AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                            color: _isListening
+                                ? AppColors.primary
+                                : AppColors.onSurfaceVariant.withValues(alpha: 0.75),
+                            fontWeight: FontWeight.w400,
                           ),
                           border: InputBorder.none,
                           fillColor: AppColors.surfaceContainerLow,
@@ -470,14 +495,14 @@ class _AiChatPageState extends State<AiChatPage> {
                                     color: AppColors.surfaceContainerLow,
                                     borderRadius: BorderRadius.circular(999),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.self_improvement, size: 15, color: AppColors.primary),
-                                      SizedBox(width: 4),
+                                      const Icon(Icons.self_improvement, size: 15, color: AppColors.primary),
+                                      const SizedBox(width: 4),
                                       Text(
-                                        'Breathe',
-                                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppColors.onSurfaceVariant),
+                                        AppStrings.tr('breathe'),
+                                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppColors.onSurfaceVariant),
                                       ),
                                     ],
                                   ),
@@ -495,12 +520,12 @@ class _AiChatPageState extends State<AiChatPage> {
                               minimumSize: Size.zero,
                             ),
                             onPressed: () => _sendMessage(),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text('Send', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                SizedBox(width: 4),
-                                Icon(Icons.send, size: 14),
+                                Text(AppStrings.tr('send'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.send, size: 14),
                               ],
                             ),
                           ),

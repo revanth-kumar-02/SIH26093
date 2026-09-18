@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/routes/route_paths.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -9,6 +11,25 @@ import '../../../../core/theme/app_colors.dart';
 /// pacing reassurance, a direct Helpline dialer, and an intentional "Begin When Ready" CTA.
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
+
+  Future<void> _launchDialer(BuildContext context, String number) async {
+    final uri = Uri.parse('tel:$number');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Please dial $number from your phone.'),
+              backgroundColor: AppColors.tertiary,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (_) {}
+  }
 
   void _showHelplineDialog(BuildContext context) {
     showDialog<void>(
@@ -20,12 +41,36 @@ class WelcomePage extends StatelessWidget {
           children: [
             Icon(Icons.phone_in_talk, color: AppColors.tertiary, size: 22),
             SizedBox(width: 10),
-            Text('Helpline 14566', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            Expanded(
+              child: Text(
+                AppStrings.demoSupportLabel,
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+              ),
+            ),
           ],
         ),
-        content: const Text(
-          'Connect directly with the NHAA National Helpline 14566 for immediate, confidential assistance.',
-          style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.5),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Connect directly with Demo Support (9787872051) for immediate assistance.',
+              style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.4),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+              ),
+              child: const Text(
+                AppStrings.demoDisclaimer,
+                style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant, height: 1.4),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -38,8 +83,11 @@ class WelcomePage extends StatelessWidget {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Call 14566'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _launchDialer(context, AppStrings.demoContactNumber);
+            },
+            child: const Text('Call Demo (9787872051)'),
           ),
         ],
       ),
@@ -85,7 +133,7 @@ class WelcomePage extends StatelessWidget {
                                 Icon(Icons.phone_in_talk, size: 15, color: AppColors.tertiary),
                                 SizedBox(width: 6),
                                 Text(
-                                  'Helpline ',
+                                  'Demo Support: ',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
@@ -93,7 +141,7 @@ class WelcomePage extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '14566',
+                                  '9787872051',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -322,7 +370,7 @@ class WelcomePage extends StatelessWidget {
                                       ),
                                     ),
                                     Text(
-                                      'Call 14566',
+                                      'Call Demo Support (9787872051)',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,

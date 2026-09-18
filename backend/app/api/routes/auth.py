@@ -6,9 +6,8 @@ from sqlalchemy import select, or_
 from app.db.session import get_db
 from app.db.models.responder import Responder, UserRole
 from app.db.models.audit import AuditEvent
-from app.schemas.auth import LoginRequest, TokenResponse, RefreshTokenRequest, ResponderRead
+from app.schemas.auth import LoginRequest, TokenResponse, RefreshTokenRequest, ResponderRead, SupabaseAuthSyncRequest
 from app.core.auth import (
-    verify_password,
     create_access_token,
     create_refresh_token,
     decode_token,
@@ -23,23 +22,23 @@ async def login(
     credentials: LoginRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    """Authenticate a user (PEOPLE or ADMIN) and issue JWT tokens."""
-    # Find user by username or email
-    username_clean = credentials.username.strip().lower()
-    conditions = [
-        Responder.username == credentials.username.strip(),
-        Responder.email == username_clean,
-    ]
-    if username_clean in ["admin@localhost", "admin@nhaa.gov.in", "admin_user", "admin"]:
-        conditions.append(Responder.role == UserRole.ADMIN)
-    elif username_clean in ["people@localhost", "people@nhaa.gov.in", "people_user", "people"]:
-        conditions.append(Responder.role == UserRole.PEOPLE)
-
-    stmt = select(Responder).where(or_(*conditions))
+    """
+    Authenticate or retrieve token for user profile in development/testing.
+    In production, Supabase Auth handles credentials and client issues Bearer tokens directly.
+    """
+    username_raw = credentials.username.strip()
+    username_clean = username_raw.lower()
+    stmt = select(Responder).where(
+        or_(
+            Responder.username == username_raw,
+            Responder.username == username_clean,
+            Responder.email == username_clean,
+        )
+    )
     result = await db.execute(stmt)
     user = result.scalars().first()
 
-    if not user or not verify_password(credentials.password, user.password_hash):
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"error": {"code": "INVALID_CREDENTIALS", "message": "Invalid username/email or password."}},
@@ -72,7 +71,11 @@ async def login(
     access_token = create_access_token(
         subject=user.id,
         role=user.role.value,
-        extra_claims={"display_name": user.display_name, "username": user.username}
+        extra_claims={
+            "display_name": user.display_name, 
+            "username": user.username,
+            "email": user.email
+        }
     )
     refresh_token = create_refresh_token(subject=user.id)
 
@@ -85,6 +88,50 @@ async def login(
         responder_id=user.id,
         display_name=user.display_name
     )
+
+@router.post("/sync", response_model=ResponderRead)
+async def sync_supabase_session(
+    sync_req: SupabaseAuthSyncRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Validate a Supabase Auth JWT from the client and synchronize/return the PostgreSQL user profile.
+    """
+    payload = decode_token(sync_req.access_token)
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"error": {"code": "INVALID_TOKEN", "message": "Missing subject UUID in Supabase token."}},
+        )
+
+    # Query PostgreSQL
+    user = (await db.execute(select(Responder).where(Responder.id == str(user_id)))).scalars().first()
+    if not user:
+        email = payload.get("email") or f"user_{str(user_id)[:8]}@auth.local"
+        username = email.split("@")[0]
+        display_name = sync_req.display_name or payload.get("user_metadata", {}).get("display_name") or username
+        role_raw = payload.get("app_metadata", {}).get("role") or payload.get("user_metadata", {}).get("role") or "PEOPLE"
+        role_enum = UserRole.ADMIN if str(role_raw).upper() == "ADMIN" else UserRole.PEOPLE
+
+        user = Responder(
+            id=str(user_id),
+            username=username,
+            email=email,
+            display_name=display_name,
+            role=role_enum,
+            is_active=True,
+            last_login_at=datetime.now(timezone.utc)
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    else:
+        user.last_login_at = datetime.now(timezone.utc)
+        await db.commit()
+        await db.refresh(user)
+
+    return user
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
@@ -115,7 +162,11 @@ async def refresh_token(
     access_token = create_access_token(
         subject=user.id,
         role=user.role.value,
-        extra_claims={"display_name": user.display_name, "username": user.username}
+        extra_claims={
+            "display_name": user.display_name, 
+            "username": user.username,
+            "email": user.email
+        }
     )
     new_refresh_token = create_refresh_token(subject=user.id)
 
@@ -133,5 +184,6 @@ async def refresh_token(
 async def get_me(
     current_user: Responder = Depends(get_current_responder)
 ):
-    """Retrieve profile and role information of current authenticated user."""
+    """Retrieve profile and role information of current authenticated user from PostgreSQL."""
     return current_user
+

@@ -1,7 +1,16 @@
-﻿from typing import AsyncGenerator
+import sys
+import asyncio
+from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from app.core.config import settings
 from app.db.base import Base
+
+if sys.platform == "win32":
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:
+        pass
+
 
 # Determine connect_args based on dialect
 connect_args = {}

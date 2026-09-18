@@ -14,7 +14,6 @@ from app.db.models.recommendation import RecommendationModel
 from app.db.models.recommendation_review import RecommendationReview
 from app.db.models.ai_signal import AISignal
 from app.db.models.audit import AuditEvent
-from app.core.auth import hash_password
 
 async def seed_database(force_reset: bool = False):
     """Populate database with exactly 2 synthetic development accounts (1 ADMIN, 1 PEOPLE) and 5 demo cases."""
@@ -41,25 +40,23 @@ async def seed_database(force_reset: bool = False):
             await session.execute(delete(Responder))
             await session.commit()
 
-        # Documented development/test seed passwords and emails using env vars
+        # Documented development/test seed profiles
         admin_email = os.getenv("ADMIN_EMAIL", "admin@nhaa.gov.in")
-        admin_pass = os.getenv("ADMIN_PASSWORD") or os.getenv("ADMIN_SEED_PASSWORD", "AdminPassword@123")
         people_email = os.getenv("PEOPLE_EMAIL", "people@nhaa.gov.in")
-        people_pass = os.getenv("PEOPLE_PASSWORD") or os.getenv("PEOPLE_SEED_PASSWORD", "PeoplePassword@123")
 
         print("Seeding exactly 2 synthetic accounts: 1 ADMIN, 1 PEOPLE...")
         admin = Responder(
+            id="00000000-0000-0000-0000-000000000001",
             username="admin_user",
             email=admin_email,
-            password_hash=hash_password(admin_pass),
             display_name="System Administrator",
             role=UserRole.ADMIN,
             is_active=True
         )
         people = Responder(
+            id="00000000-0000-0000-0000-000000000002",
             username="people_user",
             email=people_email,
-            password_hash=hash_password(people_pass),
             display_name="Citizen / Complainant",
             role=UserRole.PEOPLE,
             is_active=True

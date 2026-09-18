@@ -18,7 +18,6 @@ class Responder(Base):
     id: Mapped[str] = get_uuid_column()
     username: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str] = mapped_column(String(150), nullable=False)
     role: Mapped[UserRole] = mapped_column(
         SAEnum(UserRole, name="user_role", native_enum=False),

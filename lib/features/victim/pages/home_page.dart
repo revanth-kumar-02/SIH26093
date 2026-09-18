@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/routes/route_paths.dart';
 import '../../../../core/services/app_state_service.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -68,9 +69,9 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
-      appBar: const SanctuaryHeader(
-        title: 'Sanctuary Home',
-        subtitle: 'NHAA SANCTUARY',
+      appBar: SanctuaryHeader(
+        title: AppStrings.tr('sanctuary_home'),
+        subtitle: AppStrings.tr('nhaa_sanctuary'),
       ),
       body: SafeArea(
         child: Center(
@@ -93,15 +94,15 @@ class _HomePageState extends State<HomePage> {
                           color: AppColors.outlineVariant.withValues(alpha: 0.3),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.shield, size: 14, color: AppColors.primarySage),
-                          SizedBox(width: 6),
+                          const Icon(Icons.shield, size: 14, color: AppColors.primarySage),
+                          const SizedBox(width: 6),
                           Flexible(
                             child: Text(
-                              'Encrypted, discrete & safe',
-                              style: TextStyle(
+                              AppStrings.tr('safe_encrypted'),
+                              style: const TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w500,
                                 color: AppColors.secondaryOlive,
@@ -226,7 +227,7 @@ class _HomePageState extends State<HomePage> {
 
                 // Warm Conversational Greeting
                 Text(
-                  'How would you like to share what happened?',
+                  AppStrings.tr('how_share'),
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontSize: 21,
                         height: 28 / 21,
@@ -236,9 +237,9 @@ class _HomePageState extends State<HomePage> {
                       ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Take all the time you need. Choose the way that feels safest and most comfortable for you right now.',
-                  style: TextStyle(
+                Text(
+                  AppStrings.tr('choose_pace'),
+                  style: const TextStyle(
                     fontSize: 14,
                     height: 1.5,
                     color: AppColors.onSurfaceVariant,
@@ -340,9 +341,9 @@ class _HomePageState extends State<HomePage> {
                 // Option 1: Voice Choice Card
                 _buildChoiceCard(
                   icon: Icons.mic,
-                  title: 'Talk with us',
+                  title: AppStrings.tr('talk_with_us'),
                   subtitle: 'Gentle voice listening',
-                  description: 'Speak naturally in your own words. We listen patiently with no time limit.',
+                  description: AppStrings.tr('talk_subtitle'),
                   actionLabel: 'Start voice conversation',
                   badgeLabel: 'Audio',
                   secondaryIcon: Icons.volume_up,
@@ -353,9 +354,9 @@ class _HomePageState extends State<HomePage> {
                 // Option 2: Written Choice Card
                 _buildChoiceCard(
                   icon: Icons.edit_note,
-                  title: 'Type it out',
+                  title: AppStrings.tr('type_it_out'),
                   subtitle: 'Guided written pacing',
-                  description: 'Write at your own pace. You can pause, review, and edit anytime.',
+                  description: AppStrings.tr('type_subtitle'),
                   actionLabel: 'Start written conversation',
                   badgeLabel: 'Text',
                   secondaryIcon: Icons.pause_circle_outline,

@@ -697,7 +697,7 @@ class _VoiceInteractionPageState extends State<VoiceInteractionPage>
                                     Icon(Icons.call, size: 12, color: AppColors.onErrorContainer),
                                     SizedBox(width: 4),
                                     Text(
-                                      'Call 14566',
+                                      'Demo Call (9787872051)',
                                       style: TextStyle(
                                         fontSize: 11.5,
                                         fontWeight: FontWeight.w600,

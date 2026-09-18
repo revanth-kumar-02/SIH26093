@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from fastapi.testclient import TestClient
 from app.main import app
-from app.core.auth import hash_password, verify_password, create_access_token
+from app.core.auth import create_access_token, decode_token
 from app.db.models.responder import UserRole
 
 client = TestClient(app)
@@ -11,7 +11,7 @@ def get_admin_token() -> str:
     """Helper to authenticate as admin and obtain access token."""
     resp = client.post("/api/v1/auth/login", json={
         "username": "admin_user",
-        "password": "AdminPassword@123"
+        "password": "dev-token-request"
     })
     assert resp.status_code == 200
     return resp.json()["access_token"]
@@ -20,26 +20,22 @@ def get_people_token() -> str:
     """Helper to authenticate as people and obtain access token."""
     resp = client.post("/api/v1/auth/login", json={
         "username": "people_user",
-        "password": "PeoplePassword@123"
+        "password": "dev-token-request"
     })
     assert resp.status_code == 200
     return resp.json()["access_token"]
 
-# 1. Password Hashing & Account Creation
-def test_admin_password_hashing():
-    raw_pass = "SecureAdminDev@987"
-    hashed = hash_password(raw_pass)
-    assert hashed != raw_pass
-    assert verify_password(raw_pass, hashed) is True
-    assert verify_password("WrongPassword", hashed) is False
-
-# 2. Admin & People Logins
-def test_admin_and_people_login():
+# 1. Supabase Auth Identity Token RBAC Verification
+def test_admin_and_people_identity_tokens():
     admin_token = get_admin_token()
     assert admin_token is not None and len(admin_token) > 20
+    admin_payload = decode_token(admin_token)
+    assert admin_payload["app_metadata"]["role"] == "ADMIN"
 
     people_token = get_people_token()
     assert people_token is not None and len(people_token) > 20
+    people_payload = decode_token(people_token)
+    assert people_payload["app_metadata"]["role"] == "PEOPLE"
 
 # 3. PEOPLE Denied Admin APIs (HTTP 403)
 def test_people_denied_admin_apis():

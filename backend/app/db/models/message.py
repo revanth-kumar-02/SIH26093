@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List, TYPE_CHECKING
 from sqlalchemy import String, Text, DateTime, Enum as SAEnum, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.db.base import Base, get_uuid_column, get_json_type, utc_now
+from app.db.base import Base, get_uuid_column, get_foreign_uuid_column, get_uuid_str_column, get_json_type, utc_now
 
 if TYPE_CHECKING:
     from app.db.models.conversation import Conversation
@@ -11,10 +11,11 @@ if TYPE_CHECKING:
 
 class MessageSenderType(str, enum.Enum):
     VICTIM = "VICTIM"
-    SYSTEM = "SYSTEM"
+    PEOPLE = "PEOPLE"
     RESPONDER = "RESPONDER"
     ADMIN = "ADMIN"
     AI = "AI"
+    SYSTEM = "SYSTEM"
 
 class MessageInputSource(str, enum.Enum):
     TEXT = "TEXT"
@@ -26,13 +27,8 @@ class Message(Base):
     __tablename__ = "messages"
 
     id: Mapped[str] = get_uuid_column()
-    conversation_id: Mapped[str] = mapped_column(
-        String(36),
-        ForeignKey("conversations.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
-    )
-    session_id: Mapped[Optional[str]] = mapped_column(String(64), index=True, nullable=True)
+    conversation_id: Mapped[Optional[str]] = get_foreign_uuid_column("conversations.id", nullable=True)
+    session_id: Mapped[Optional[str]] = get_uuid_str_column(nullable=True, index=True)
     sender_type: Mapped[MessageSenderType] = mapped_column(
         SAEnum(MessageSenderType, name="message_sender_type", native_enum=False),
         nullable=False

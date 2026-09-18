@@ -1,8 +1,15 @@
-﻿import os
+import os
 from typing import List, Optional
 from pydantic import BaseModel
+from dotenv import load_dotenv
 
-DEFAULT_SQLITE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "responder.db")).replace("\\", "/")
+# Search and load .env from backend directory, then workspace root
+backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+root_dir = os.path.abspath(os.path.join(backend_dir, ".."))
+load_dotenv(os.path.join(backend_dir, ".env"))
+load_dotenv(os.path.join(root_dir, ".env"))
+
+DEFAULT_SQLITE_PATH = os.path.abspath(os.path.join(backend_dir, "responder.db")).replace("\\", "/")
 
 class Settings(BaseModel):
     API_V1_STR: str = "/api/v1"
@@ -18,20 +25,27 @@ class Settings(BaseModel):
         "*"
     ]
     
-    # Database Configuration
-    # Defaults to PostgreSQL with asyncpg, falls back to aiosqlite for local test environments
+    # Database Configuration (PostgreSQL 18 + psycopg 3)
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", 
-        f"sqlite+aiosqlite:///{DEFAULT_SQLITE_PATH}"
+        "postgresql+psycopg://sih_app:sih26093@localhost:5432/sih26093"
     )
     POSTGRES_DEFAULT_URL: str = os.getenv(
         "POSTGRES_DEFAULT_URL",
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/sih26093"
+        "postgresql+psycopg://sih_app:sih26093@localhost:5432/sih26093"
     )
     ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL", "admin@localhost")
     ADMIN_PASSWORD: Optional[str] = os.getenv("ADMIN_PASSWORD") or os.getenv("ADMIN_SEED_PASSWORD")
     PEOPLE_EMAIL: str = os.getenv("PEOPLE_EMAIL", "people@localhost")
     PEOPLE_PASSWORD: Optional[str] = os.getenv("PEOPLE_PASSWORD") or os.getenv("PEOPLE_SEED_PASSWORD")
+    
+    # Supabase Auth Configuration (Supabase Auth used exclusively for authentication & email verification)
+    SUPABASE_URL: Optional[str] = os.getenv("SUPABASE_URL")
+    SUPABASE_KEY: Optional[str] = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+    SUPABASE_JWT_SECRET: str = os.getenv(
+        "SUPABASE_JWT_SECRET", 
+        os.getenv("JWT_SECRET_KEY", "sih26093-secure-responder-jwt-secret-key-change-in-production")
+    )
     
     # Responder Authentication & JWT Configuration
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "sih26093-secure-responder-jwt-secret-key-change-in-production")

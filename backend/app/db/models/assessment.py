@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional, TYPE_CHECKING
 from sqlalchemy import String, DateTime, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.db.base import Base, get_uuid_column, get_json_type, utc_now
+from app.db.base import Base, get_uuid_column, get_foreign_uuid_column, get_uuid_str_column, get_json_type, utc_now
 
 if TYPE_CHECKING:
     from app.db.models.case import Case
@@ -11,12 +11,7 @@ class AssessmentModel(Base):
     __tablename__ = "assessments"
 
     id: Mapped[str] = get_uuid_column()
-    case_id: Mapped[str] = mapped_column(
-        String(36),
-        ForeignKey("cases.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
-    )
+    case_id: Mapped[str] = get_foreign_uuid_column("cases.id")
     session_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
     assessment_version: Mapped[str] = mapped_column(String(50), default="gemma-3n-e2b-v1.0", nullable=False)
     assessment_payload: Mapped[Dict[str, Any]] = mapped_column(get_json_type(), nullable=False)

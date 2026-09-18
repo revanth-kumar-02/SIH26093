@@ -1,4 +1,14 @@
-﻿from fastapi import FastAPI, HTTPException, Request
+import sys
+import asyncio
+
+# Enable psycopg 3 async compatibility on Windows
+if sys.platform == "win32":
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:
+        pass
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings

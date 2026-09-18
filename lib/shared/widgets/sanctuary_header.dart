@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/constants/app_strings.dart';
 import '../../core/theme/app_colors.dart';
 
 /// Top App Bar matching the discreet Sanctuary Header from Stitch.
@@ -65,12 +66,36 @@ class SanctuaryHeader extends StatelessWidget implements PreferredSizeWidget {
           children: [
             Icon(Icons.phone_in_talk, color: AppColors.tertiary, size: 22),
             SizedBox(width: 10),
-            Text('Helpline 14566', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            Expanded(
+              child: Text(
+                AppStrings.demoSupportLabel,
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+              ),
+            ),
           ],
         ),
-        content: const Text(
-          'Connect directly with the NHAA National Helpline 14566 for immediate, confidential assistance.',
-          style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.5),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Connect directly with Demo Support (9787872051) for immediate assistance.',
+              style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.4),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+              ),
+              child: const Text(
+                AppStrings.demoDisclaimer,
+                style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant, height: 1.4),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -85,9 +110,9 @@ class SanctuaryHeader extends StatelessWidget implements PreferredSizeWidget {
             ),
             onPressed: () {
               Navigator.of(ctx).pop();
-              _launchDialer(context, '14566');
+              _launchDialer(context, AppStrings.demoContactNumber);
             },
-            child: const Text('Call 14566'),
+            child: const Text('Call Demo (9787872051)'),
           ),
         ],
       ),
@@ -179,7 +204,7 @@ class SanctuaryHeader extends StatelessWidget implements PreferredSizeWidget {
                   Icon(Icons.call, color: AppColors.onSecondaryContainer, size: 13),
                   SizedBox(width: 4),
                   Text(
-                    '14566',
+                    'Demo: 9787872051',
                     style: TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/constants/app_strings.dart';
 import '../../core/theme/app_colors.dart';
 
 /// Trauma-informed crisis helpline banner.
@@ -62,15 +63,34 @@ class CrisisBanner extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Connect to $label',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                label,
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
               ),
             ),
           ],
         ),
-        content: Text(
-          'You are about to dial $number. This is a confidential, immediate assistance line available 24/7.',
-          style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.5),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'You are connecting to Demo Support ($number).',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.onSurface, height: 1.4),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+              ),
+              child: const Text(
+                AppStrings.demoDisclaimer,
+                style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant, height: 1.4),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -87,7 +107,7 @@ class CrisisBanner extends StatelessWidget {
               Navigator.of(ctx).pop();
               _launchDialer(context, number);
             },
-            child: Text('Dial $number'),
+            child: Text('Dial $number (Demo)'),
           ),
         ],
       ),
@@ -159,11 +179,17 @@ class CrisisBanner extends StatelessWidget {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         elevation: 1,
                       ),
-                      onPressed: () => _showHelplineDialog(context, '14566', 'Helpline 14566'),
+                      onPressed: () => _showHelplineDialog(
+                        context,
+                        AppStrings.demoContactNumber,
+                        AppStrings.demoSupportLabel,
+                      ),
                       icon: const Icon(Icons.call, size: 16),
-                      label: const Text(
-                        'Helpline 14566',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      label: Text(
+                        AppStrings.tr('demo_support'),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
@@ -179,11 +205,17 @@ class CrisisBanner extends StatelessWidget {
                         side: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      onPressed: () => _showHelplineDialog(context, '112', 'Emergency 112'),
-                      icon: const Icon(Icons.local_police_outlined, size: 16, color: AppColors.onSurface),
-                      label: const Text(
-                        'Call 112',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      onPressed: () => _showHelplineDialog(
+                        context,
+                        AppStrings.demoContactNumber,
+                        AppStrings.demoEmergencyLabel,
+                      ),
+                      icon: const Icon(Icons.support_agent, size: 16, color: AppColors.onSurface),
+                      label: Text(
+                        AppStrings.tr('demo_line'),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
@@ -197,7 +229,11 @@ class CrisisBanner extends StatelessWidget {
 
     return InkWell(
       borderRadius: BorderRadius.circular(14),
-      onTap: () => _showHelplineDialog(context, '14566', 'Helpline 14566'),
+      onTap: () => _showHelplineDialog(
+        context,
+        AppStrings.demoContactNumber,
+        AppStrings.demoSupportLabel,
+      ),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -218,22 +254,22 @@ class CrisisBanner extends StatelessWidget {
               child: const Icon(Icons.phone_in_talk, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Feeling unsafe right now?',
-                    style: TextStyle(
+                    AppStrings.tr('crisis_banner_title'),
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: AppColors.onTertiaryFixed,
                     ),
                   ),
-                  SizedBox(height: 1),
+                  const SizedBox(height: 1),
                   Text(
-                    'Connect to 14566 crisis helpline immediately',
-                    style: TextStyle(
+                    '${AppStrings.tr('crisis_banner_sub')}: ${AppStrings.demoContactNumber}',
+                    style: const TextStyle(
                       fontSize: 11.5,
                       color: AppColors.onTertiaryFixedVariant,
                     ),
@@ -243,19 +279,19 @@ class CrisisBanner extends StatelessWidget {
                 ],
               ),
             ),
-            const Row(
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Call',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                  AppStrings.tr('demo_call'),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.tertiary,
                   ),
                 ),
-                SizedBox(width: 2),
-                Icon(Icons.arrow_forward, size: 16, color: AppColors.tertiary),
+                const SizedBox(width: 4),
+                const Icon(Icons.arrow_forward, size: 14, color: AppColors.tertiary),
               ],
             ),
           ],
