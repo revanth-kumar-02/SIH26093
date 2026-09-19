@@ -22,6 +22,7 @@ import '../../features/victim/pages/home_page.dart';
 import '../../features/victim/pages/language_selection_page.dart';
 import '../../features/victim/pages/splash_page.dart';
 import '../../features/victim/pages/support_emergency_page.dart';
+import '../../features/victim/pages/grounding_page.dart';
 import '../../features/victim/pages/voice_interaction_page.dart';
 import '../../features/victim/pages/welcome_page.dart';
 import '../services/app_state_service.dart';
@@ -76,6 +77,7 @@ class AppRouter {
         RoutePaths.home,
         RoutePaths.aiChat,
         RoutePaths.voiceInteraction,
+        RoutePaths.grounding,
         RoutePaths.assessmentStatus,
         RoutePaths.supportEmergency,
       ];
@@ -151,6 +153,11 @@ class AppRouter {
         path: RoutePaths.voiceInteraction,
         name: 'voiceInteraction',
         builder: (context, state) => const VoiceInteractionPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.grounding,
+        name: 'grounding',
+        builder: (context, state) => const GroundingPage(),
       ),
       GoRoute(
         path: RoutePaths.assessmentStatus,

@@ -1126,7 +1126,7 @@ class _AdminCaseDetailPageState extends State<AdminCaseDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Structured AI Assessment (Gemma 3n E2B IT)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          const Text('Structured AI Assessment', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
           if (d.aiSummary != null)
             Text(d.aiSummary!, style: const TextStyle(fontSize: 13)),
@@ -1497,7 +1497,7 @@ class AdminSettingsPage extends StatelessWidget {
                   const Text('• Speech Emotion: Dpngtm/wav2vec2-emotion-recognition'),
                   const Text('• Text Emotion: SamLowe/roberta-base-go_emotions'),
                   const Text('• Stress Detection: jtvallente/mentalbert_dreaddit_best'),
-                  const Text('• Multimodal LLM: google/gemma-3n-E2B-it'),
+                  const Text('• Multimodal LLM: TrueVoice Neural Pipeline'),
                   const Text('• SVI Engine: Deterministic Formula v1.0'),
                 ],
               ),

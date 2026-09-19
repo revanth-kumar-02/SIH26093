@@ -99,6 +99,25 @@ class _AiChatPageState extends State<AiChatPage> with TickerProviderStateMixin {
     _scrollToBottom();
   }
 
+  String _formatTimestamp(String? timestamp) {
+    if (timestamp == null || timestamp.isEmpty) {
+      return _formatTimeOfDay(DateTime.now());
+    }
+    final parsed = DateTime.tryParse(timestamp);
+    if (parsed == null) {
+      return timestamp;
+    }
+    final localTime = parsed.isUtc ? parsed.toLocal() : parsed;
+    return _formatTimeOfDay(localTime);
+  }
+
+  String _formatTimeOfDay(DateTime dt) {
+    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
+  }
+
   Future<void> _startRecording() async {
     final hasPermission = await _audioRecorder.hasPermission();
     if (!hasPermission) {
@@ -253,51 +272,6 @@ class _AiChatPageState extends State<AiChatPage> with TickerProviderStateMixin {
     );
   }
 
-  void _showBreathingModal() {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceContainerLowest,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 10),
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.secondaryContainer.withValues(alpha: 0.6),
-              ),
-              child: const Icon(Icons.self_improvement, size: 40, color: AppColors.primary),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Grounding Moment',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.onSurface),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Inhale gently for 4 seconds...\\nHold for 4 seconds...\\nExhale slowly for 4 seconds.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, height: 1.6, color: AppColors.onSurfaceVariant),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('I Feel Ready to Continue'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -329,18 +303,18 @@ class _AiChatPageState extends State<AiChatPage> with TickerProviderStateMixin {
               child: const Icon(Icons.eco, size: 18, color: AppColors.primary),
             ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  const Text(
                     'TrueVoice Guide',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.onSurface),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  Text(
+                  const Text(
                     'Encrypted & confidential',
                     style: TextStyle(fontSize: 11, color: AppColors.secondary),
                     maxLines: 1,
@@ -352,20 +326,6 @@ class _AiChatPageState extends State<AiChatPage> with TickerProviderStateMixin {
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Restart chat',
-            icon: const Icon(Icons.refresh, size: 20, color: AppColors.secondary),
-            onPressed: () {
-              AppStateService.instance.clearChat();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Chat restarted fresh.'),
-                  duration: Duration(seconds: 1),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-          ),
           TextButton.icon(
             onPressed: () {
               AppStateService.instance.advanceAssessmentStep(2);
@@ -515,214 +475,264 @@ class _AiChatPageState extends State<AiChatPage> with TickerProviderStateMixin {
                       ),
                     ],
                   ),
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    itemCount: totalCount,
-                    itemBuilder: (context, index) {
-                      if (hasDivider && index == 2) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                ),                Expanded(
+                  child: messages.isEmpty && !isAiGenerating
+                      ? SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                           child: Center(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceContainerHigh,
-                                borderRadius: BorderRadius.circular(999),
+                                color: AppColors.surfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                                ),
                               ),
-                              child: const Row(
+                              child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.favorite, size: 14, color: AppColors.primary),
-                                  SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      "Remember: You don't have to answer anything you aren't ready for.",
-                                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppColors.onSurfaceVariant),
-                                      textAlign: TextAlign.center,
+                                  Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.secondaryContainer,
+                                      shape: BoxShape.circle,
                                     ),
+                                    child: const Icon(Icons.shield_outlined, color: AppColors.primary, size: 24),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  const Text(
+                                    'Welcome to TrueVoice Safe Space',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.onSurface,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'This is a private, confidential session. Take your time, and only share what feels comfortable. Type below or use voice mode whenever you are ready.',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      height: 1.5,
+                                      color: AppColors.onSurfaceVariant,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                        );
-                      }
-                      final isTypingBubbleItem = isAiGenerating && index == totalCount - 1;
-                      if (isTypingBubbleItem) {
-                        return const _AiTypingBubble();
-                      }
-                      final msgIndex = (hasDivider && index > 2) ? index - 1 : index;
-                      final message = messages[msgIndex];
-                      final isError = message.id.startsWith('asst-err');
-
-                      if (message.isAssistant) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: isError ? AppColors.errorContainer : AppColors.surfaceContainerHighest,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  isError ? Icons.error_outline : Icons.eco,
-                                  size: 16,
-                                  color: isError ? AppColors.error : AppColors.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(14),
-                                      decoration: BoxDecoration(
-                                        color: isError ? AppColors.surfaceContainerLow : AppColors.surfaceContainerLowest,
-                                        borderRadius: const BorderRadius.only(
-                                          topRight: Radius.circular(16),
-                                          bottomLeft: Radius.circular(16),
-                                          bottomRight: Radius.circular(16),
-                                          topLeft: Radius.circular(4),
-                                        ),
-                                        border: isError ? Border.all(color: AppColors.error.withValues(alpha: 0.3)) : null,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(alpha: 0.02),
-                                            blurRadius: 6,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            message.text,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              height: 1.5,
-                                              color: isError ? AppColors.error : AppColors.onSurface,
-                                            ),
-                                          ),
-                                          if (isError) ...[
-                                            const SizedBox(height: 8),
-                                            OutlinedButton.icon(
-                                              style: OutlinedButton.styleFrom(
-                                                foregroundColor: AppColors.primary,
-                                                side: const BorderSide(color: AppColors.primary, width: 1),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                                                visualDensity: VisualDensity.compact,
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                              ),
-                                              onPressed: () => AppStateService.instance.retryLastMessage(),
-                                              icon: const Icon(Icons.refresh, size: 14),
-                                              label: const Text('Retry message', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          itemCount: totalCount,
+                          itemBuilder: (context, index) {
+                            if (hasDivider && index == 2) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surfaceContainerHigh,
+                                      borderRadius: BorderRadius.circular(999),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'TrueVoice Guide • \${message.timestamp}',
-                                      style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      } else {
-                        final isVoiceSource = message.inputSource == 'voice';
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Flexible(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(14),
-                                      decoration: const BoxDecoration(
-                                        color: AppColors.secondaryContainer,
-                                        borderRadius: BorderRadius.only(
-                                          topLeft: Radius.circular(16),
-                                          bottomLeft: Radius.circular(16),
-                                          bottomRight: Radius.circular(16),
-                                          topRight: Radius.circular(4),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        message.text,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          height: 1.5,
-                                          color: AppColors.onSecondaryContainer,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Row(
+                                    child: const Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Text(
-                                          isVoiceSource ? 'Spoken by you' : 'Shared by you',
-                                          style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Icon(
-                                          isVoiceSource ? Icons.mic_none : Icons.done_all,
-                                          size: 14,
-                                          color: AppColors.primary,
+                                        Icon(Icons.favorite, size: 14, color: AppColors.primary),
+                                        SizedBox(width: 6),
+                                        Flexible(
+                                          child: Text(
+                                            "Remember: You don't have to answer anything you aren't ready for.",
+                                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: AppColors.onSurfaceVariant),
+                                            textAlign: TextAlign.center,
+                                          ),
                                         ),
                                       ],
                                     ),
+                                  ),
+                                ),
+                              );
+                            }
+                            final isTypingBubbleItem = isAiGenerating && index == totalCount - 1;
+                            if (isTypingBubbleItem) {
+                              return const _AiTypingBubble();
+                            }
+                            final msgIndex = (hasDivider && index > 2) ? index - 1 : index;
+                            final message = messages[msgIndex];
+                            final isError = message.id.startsWith('asst-err');
+
+                            if (message.isAssistant) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 14),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        color: isError ? AppColors.errorContainer : AppColors.surfaceContainerHighest,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        isError ? Icons.error_outline : Icons.eco,
+                                        size: 16,
+                                        color: isError ? AppColors.error : AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(14),
+                                            decoration: BoxDecoration(
+                                              color: isError ? AppColors.surfaceContainerLow : AppColors.surfaceContainerLowest,
+                                              borderRadius: const BorderRadius.only(
+                                                topRight: Radius.circular(16),
+                                                bottomLeft: Radius.circular(16),
+                                                bottomRight: Radius.circular(16),
+                                                topLeft: Radius.circular(4),
+                                              ),
+                                              border: isError ? Border.all(color: AppColors.error.withValues(alpha: 0.3)) : null,
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.02),
+                                                  blurRadius: 6,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  message.text,
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    height: 1.5,
+                                                    color: isError ? AppColors.error : AppColors.onSurface,
+                                                  ),
+                                                ),
+                                                if (isError) ...[
+                                                  const SizedBox(height: 8),
+                                                  OutlinedButton.icon(
+                                                    style: OutlinedButton.styleFrom(
+                                                      foregroundColor: AppColors.primary,
+                                                      side: const BorderSide(color: AppColors.primary, width: 1),
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                                                      visualDensity: VisualDensity.compact,
+                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                    ),
+                                                    onPressed: () => AppStateService.instance.retryLastMessage(),
+                                                    icon: const Icon(Icons.refresh, size: 14),
+                                                    label: const Text('Retry message', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'TrueVoice Guide • ${_formatTimestamp(message.timestamp)}',
+                                            style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                    },
-                  ),
+                              );
+                            } else {
+                              final isVoiceSource = message.inputSource == 'voice';
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 14),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Flexible(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(14),
+                                            decoration: const BoxDecoration(
+                                              color: AppColors.secondaryContainer,
+                                              borderRadius: BorderRadius.only(
+                                                topLeft: Radius.circular(16),
+                                                bottomLeft: Radius.circular(16),
+                                                bottomRight: Radius.circular(16),
+                                                topRight: Radius.circular(4),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              message.text,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                height: 1.5,
+                                                color: AppColors.onSecondaryContainer,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                '${isVoiceSource ? 'Spoken by you' : 'Shared by you'} • ${_formatTimestamp(message.timestamp)}',
+                                                style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Icon(
+                                                isVoiceSource ? Icons.mic_none : Icons.done_all,
+                                                size: 14,
+                                                color: AppColors.primary,
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          },
+                        ),
                 ),
-                if (_chatMode == ChatInputMode.text)
+                if (_chatMode == ChatInputMode.text && messages.isEmpty)
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: Row(
                       children: _promptSuggestions.map((prompt) {
                         return Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ActionChip(
-                            backgroundColor: AppColors.surfaceContainerLow,
+                            backgroundColor: const Color(0xFFF7F5F2),
                             visualDensity: VisualDensity.compact,
                             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(999),
-                              side: BorderSide(
-                                color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                              side: const BorderSide(
+                                color: Color(0xFFD4CFC9),
+                                width: 1,
                               ),
                             ),
                             label: Text(
                               prompt,
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: AppColors.onSurface,
+                                color: Color(0xFF3C3830),
                                 fontWeight: FontWeight.w400,
                               ),
                             ),
@@ -805,7 +815,7 @@ class _AiChatPageState extends State<AiChatPage> with TickerProviderStateMixin {
                     tooltip: 'Switch to Voice Mode',
                   ),
                   InkWell(
-                    onTap: _showBreathingModal,
+                    onTap: () => context.push(RoutePaths.grounding),
                     borderRadius: BorderRadius.circular(999),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

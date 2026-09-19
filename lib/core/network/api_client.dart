@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -36,6 +36,23 @@ class ApiClient {
   }
 
   Future<Map<String, dynamic>> post(String url, {Map<String, dynamic>? body}) async {
+    return _postWithTimeout(url, body: body, timeout: ApiConfig.timeoutDuration);
+  }
+
+  /// POST with an explicit timeout — use for chat messages (AI inference is slow).
+  Future<Map<String, dynamic>> postWithTimeout(
+    String url, {
+    Map<String, dynamic>? body,
+    Duration timeout = ApiConfig.chatTimeoutDuration,
+  }) async {
+    return _postWithTimeout(url, body: body, timeout: timeout);
+  }
+
+  Future<Map<String, dynamic>> _postWithTimeout(
+    String url, {
+    Map<String, dynamic>? body,
+    required Duration timeout,
+  }) async {
     try {
       final uri = Uri.parse(url);
       final response = await _httpClient
@@ -44,7 +61,7 @@ class ApiClient {
             headers: _defaultHeaders,
             body: body != null ? jsonEncode(body) : null,
           )
-          .timeout(ApiConfig.timeoutDuration);
+          .timeout(timeout);
 
       return _handleResponse(response);
     } on TimeoutException {

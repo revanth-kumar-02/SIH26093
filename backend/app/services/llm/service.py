@@ -8,24 +8,18 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 class GemmaService:
-    """Service abstraction managing Gemma-3n multimodal trauma-informed assessment.
+    """Service abstraction managing Gemma multimodal trauma-informed assessment.
     
-    Ensures lifecycle cleanliness, prevents duplicate instances, supports offline mock fallbacks,
+    Ensures lifecycle cleanliness, prevents duplicate instances,
     and isolates LLM internals from client-facing application layers.
     """
 
     def __init__(self, adapter: Optional[BaseLLMAssessmentAdapter] = None) -> None:
         if adapter is not None:
             self._adapter = adapter
-        elif settings.USE_MOCK_GEMMA or not settings.HF_TOKEN:
-            if settings.USE_MOCK_GEMMA:
-                logger.info("Initializing GemmaService with MockGemmaAdapter (USE_MOCK_GEMMA=true)")
-            else:
-                logger.warning("Initializing GemmaService with MockGemmaAdapter (HF_TOKEN not configured)")
-            self._adapter = MockGemmaAdapter(device=settings.GEMMA_DEVICE)
         else:
             model_id = settings.HF_CHAT_MODEL or settings.GEMMA_MODEL_ID
-            logger.info(f"Initializing GemmaService with remote GemmaAdapter ({model_id})")
+            logger.info(f"[AI] Initializing GemmaService with remote GemmaAdapter ({model_id})")
             self._adapter = GemmaAdapter(
                 model_id=model_id,
                 token=settings.HF_TOKEN,

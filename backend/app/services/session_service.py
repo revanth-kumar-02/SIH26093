@@ -23,6 +23,11 @@ from app.services.stress.service import stress_detection_service
 from app.services.memory_service import memory_service
 from app.services.llm.service import gemma_service
 from app.services.llm.schemas import MultimodalAssessmentInput, ConversationTurn
+from app.services.llm.policy_guard import (
+    is_programming_request,
+    get_code_redirection_response,
+    sanitize_response_output,
+)
 from app.services.svi.service import svi_service
 from app.services.svi.schemas import SVIInput
 from app.services.recommendation.service import recommendation_service
@@ -425,6 +430,33 @@ class SessionService:
             "timestamp": now_iso
         })
 
+        # Policy Guard: Check if request is asking for code / programming
+        if is_programming_request(clean_msg, conversation_history=session.get("messages", [])):
+            logger.info("[AI] Policy guard: CODE_REQUEST")
+            redirection_reply = get_code_redirection_response(eff_lang)
+
+            asst_msg = await self.persist_message(
+                db=db,
+                session_id=session_id,
+                sender_type=MessageSenderType.SYSTEM,
+                content=redirection_reply,
+                input_source=MessageInputSource.AI,
+                language=eff_lang
+            )
+            session["messages"].append({
+                "message_id": asst_msg.id,
+                "content": redirection_reply,
+                "sender_type": "AI",
+                "input_source": "AI",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            return MessageResponse(
+                message_id=asst_msg.id,
+                response=redirection_reply,
+                status="received",
+                timestamp=datetime.now(timezone.utc).isoformat()
+            )
+
         # Step 3: Extract & persist text emotion (SamLowe/roberta-base-go_emotions)
         text_emotion_res = None
         try:
@@ -677,9 +709,8 @@ class SessionService:
         language: str = "en",
         conversation_turns: Optional[List[ConversationTurn]] = None
     ) -> str:
-        """Synthesizes trauma-informed empathetic assistant response via Gemma LLM,
-        with robust language-specific fallback safety templates."""
-        # 1. Try real Gemma conversational generation first
+        """Synthesizes trauma-informed empathetic assistant response via Gemma LLM.
+        ZERO silent fallback: raises RuntimeError if Gemma inference is unavailable or fails."""
         try:
             llm_response = gemma_service.generate_response(
                 user_message=message,
@@ -688,96 +719,27 @@ class SessionService:
                 language=language
             )
             if llm_response and llm_response.strip():
-                return llm_response.strip()
+                raw_text = llm_response.strip()
+                logger.info("[AI] REAL GEMMA RESPONSE")
+
+                has_safety_escalation = False
+                if svi_result and getattr(svi_result, "immediate_safety_attention", False):
+                    has_safety_escalation = True
+                elif assessment and getattr(assessment, "safety_concerns", None):
+                    has_safety_escalation = True
+                logger.info(f"[AI] Safety escalation: {has_safety_escalation}")
+
+                guarded_reply = sanitize_response_output(
+                    raw_text,
+                    language=language,
+                    allow_emergency_contacts=has_safety_escalation
+                )
+                return guarded_reply
         except Exception as err:
-            if not settings.AI_ALLOW_FALLBACK:
-                logger.error(f"[REAL GEMMA INFERENCE FAILED - FALLBACK DISABLED] {err}")
-                raise RuntimeError(f"Real Gemma chat inference failed and fallback is disabled: {err}") from err
-            logger.warning(f"[AI FALLBACK ACTIVE] Gemma generate_response failed, using safety fallback template: {err}")
+            logger.error(f"[REAL GEMMA INFERENCE FAILED] {err}")
+            raise RuntimeError(f"Real Gemma chat inference failed: {err}") from err
 
-        if not settings.AI_ALLOW_FALLBACK:
-            raise RuntimeError("Real Gemma chat inference produced empty response and fallback is disabled.")
-
-        # 2. Deterministic Safety Fallback Templates (Multilingual)
-        is_immediate = False
-        if svi_result:
-            if getattr(svi_result, "immediate_safety_attention", False):
-                is_immediate = True
-            risk = getattr(svi_result, "risk_category", None)
-            risk_val = risk.value if hasattr(risk, "value") else str(risk)
-            if risk_val in ["CRITICAL", "HIGH"]:
-                is_immediate = True
-
-        lower = message.lower()
-        if any(w in lower for w in ["unsafe", "danger", "shelter", "stay", "kill", "threat", "attack", "hurt"]):
-            is_immediate = True
-
-        lang_code = language.strip().lower()
-        if lang_code.startswith("ta"):
-            if is_immediate:
-                return (
-                    "உங்கள் குரலைக் கேட்கிறோம், இப்போது உங்கள் பாதுகாப்பே எங்களின் முதன்மையான நோக்கம். "
-                    "நீங்கள் ஒரு பாதுகாப்பான இடத்தில் இருக்கிறீர்கள். உங்களுக்கு உடனடி உதவி அல்லது அவசர பாதுகாப்பு தேவைப்பட்டால், "
-                    "எங்களின் டெமோ ஆதரவு எண் 9787872051 ஐத் தொடர்பு கொள்ளவும். நாங்கள் உங்களுக்காக அவசர தங்குமிடம் மற்றும் ஆலோசகரின் உதவியை ஒருங்கிணைக்கத் தயாராக உள்ளோம்."
-                )
-            return (
-                "நீங்கள் பகிர்ந்துகொண்டதற்கு நன்றி. உங்கள் உணர்வுகளை நாங்கள் புரிந்துகொள்கிறோம். "
-                "எதுவும் அவசரமில்லை, உங்கள் சொந்த வேகத்தில் நீங்கள் பேசலாம். உங்களுக்கு உதவ நாங்கள் எப்போதும் இங்கே இருக்கிறோம்."
-            )
-        elif lang_code.startswith("hi"):
-            if is_immediate:
-                return (
-                    "हम आपकी बात सुन रहे हैं, और इस समय आपकी सुरक्षा हमारी सर्वोच्च प्राथमिकता है। "
-                    "आप एक सुरक्षित स्थान पर हैं। यदि आपको तत्काल आपातकालीन सुरक्षा या आश्रय की आवश्यकता है, "
-                    "तो कृपया हमारे डेमो सहायता नंबर 9787872051 पर संपर्क करें। हमारी टीम आपकी सहायता के लिए पूरी तरह तत्पर है।"
-                )
-            return (
-                "अपनी बात साझा करने के लिए धन्यवाद। हम आपकी स्थिति और भावनाओं को समझते हैं। "
-                "आराम से समय लें, हम हर कदम पर आपका साथ देने के लिए यहाँ हैं।"
-            )
-        elif lang_code.startswith("te"):
-            if is_immediate:
-                return (
-                    "మేము మీ మాటలను వింటున్నాము, మీ భద్రత మా మొదటి ప్రాధాన్యత. మీరు సురక్షితమైన ప్రదేశంలో ఉన్నారు. "
-                    "మీకు తక్షణ అత్యవసర రక్షణ లేదా ఆశ్రయం అవసరమైతే, దయచేసి మా డెమో సంప్రదింపు సంఖ్య 9787872051 కు కాల్ చేయండి."
-                )
-            return "మీ అనుభవాన్ని మాతో పంచుకున్నందుకు ధన్యవాదాలు. మీ సౌకర్యాన్ని బట్టి నెమ్మదిగా మాట్లాడవచ్చు, మేము మీకు సహాయం చేయడానికి సిద్ధంగా ఉన్నాము."
-        elif lang_code.startswith("kn"):
-            if is_immediate:
-                return (
-                    "ನಾವು ನಿಮ್ಮ ಮಾತನ್ನು ಆಲಿಸುತ್ತಿದ್ದೇವೆ, ನಿಮ್ಮ ಸುರಕ್ಷತೆಯೇ ನಮ್ಮ ಮೊದಲ ಆದ್ಯತೆ. "
-                    "ನಿಮಗೆ ತಕ್ಷಣದ ತುರ್ತು ನೆರವು ಅಥವಾ ಆಶ್ರಯ ಬೇಕಾದರೆ, ದಯವಿಟ್ಟು ನಮ್ಮ ಡೆಮೊ ಸಂಪರ್ಕ ಸಂಖ್ಯೆ 9787872051 ಗೆ ಕರೆ ಮಾಡಿ."
-                )
-            return "ನಿಮ್ಮ ಅನುಭವವನ್ನು ಹಂಚಿಕೊಂಡಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು. ನಿಮ್ಮದೇ ಆದ ಗತಿಯಲ್ಲಿ ನೀವು ಮಾತನಾಡಬಹುದು, ನಾವು ನಿಮ್ಮೊಂದಿಗೆ ಇದ್ದೇವೆ."
-        elif lang_code.startswith("ml"):
-            if is_immediate:
-                return (
-                    "ഞങ്ങൾ നിങ്ങളുടെ വാക്കുകൾ കേൾക്കുന്നു, നിങ്ങളുടെ സുരക്ഷയാണ് ഞങ്ങളുടെ പ്രഥമ പരിഗണന. "
-                    "നിങ്ങൾക്ക് അടിയന്തര സഹായം ആവശ്യമുണ്ടെങ്കിൽ, ദയവായി ഞങ്ങളുടെ ഡെമോ സപ്പോർട്ട് നമ്പറായ 9787872051-ൽ ബന്ധപ്പെടുക."
-                )
-            return "നിങ്ങൾ അനുഭവിച്ച കാര്യങ്ങൾ പങ്കുവെച്ചതിന് നന്ദി. സാവധാനം പറയൂ, ഞങ്ങൾ നിങ്ങളുടെ കൂടെയുണ്ട്."
-        else:
-            # English default
-            if is_immediate:
-                return (
-                    "We hear you clearly, and your immediate safety is our utmost priority right now. "
-                    "You are in a safe, confidential space. If you are in acute danger or need emergency shelter tonight, "
-                    "please reach our dedicated Demo Support at 9787872051. Our priority response team is standing by to coordinate assistance."
-                )
-            if any(w in lower for w in ["legal", "court", "police", "fir", "rights"]):
-                return (
-                    "Thank you for sharing this. We understand how overwhelming legal procedures can feel. "
-                    "We can coordinate confidential pro-bono legal support and rights advisement under the National Helpline Against Atrocities (NHAA) framework whenever you feel ready."
-                )
-            if any(w in lower for w in ["anonymous", "privacy", "secret"]):
-                return (
-                    "Understood completely. Everything you share here is protected with zero-knowledge trauma-informed protocols. "
-                    "You are in complete control of what you share and when."
-                )
-            return (
-                "Thank you for trusting us and sharing your experience. We are listening closely, and you can share as much or as little as feels comfortable. "
-                "Take all the time you need—we are here to support you."
-            )
+        raise RuntimeError("Real Gemma chat inference returned an empty response.")
 
     def process_message(self, session_id: str, message: str) -> MessageResponse:
         """Synchronous in-memory fallback helper preserved for unit tests."""

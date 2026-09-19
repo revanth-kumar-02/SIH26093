@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_config.dart';
 import '../models/api_models.dart';
@@ -45,7 +46,8 @@ class VictimApiService {
     }
   }
 
-  /// Send message to backend and receive empathetic AI response
+  /// Send message to backend and receive empathetic AI response.
+  /// Uses extended 60s timeout because AI inference via HuggingFace takes 10–30s.
   Future<BackendChatMessage> sendMessage({
     required String sessionId,
     required String message,
@@ -59,10 +61,14 @@ class VictimApiService {
     if (language != null && language.isNotEmpty) {
       body['language'] = language;
     }
-    final res = await _client.post(
+    debugPrint('[CHAT] Sending message to session $sessionId');
+    debugPrint('[CHAT] API URL: ${ApiConfig.sessionMessagesUrl(sessionId)}');
+    debugPrint('[CHAT] Request started');
+    final res = await _client.postWithTimeout(
       ApiConfig.sessionMessagesUrl(sessionId),
       body: body,
     );
+    debugPrint('[CHAT] Response received');
     return BackendChatMessage.fromJson(res);
   }
 

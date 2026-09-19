@@ -40,7 +40,6 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
         self._token = token or settings.HF_TOKEN
         self._client: Optional[InferenceClient] = None
         self._is_loaded = False
-        self._mock_fallback = MockGemmaAdapter(device=self.device)
         self._init_client()
 
     def _init_client(self) -> None:
@@ -75,51 +74,74 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
         if not self._client:
             self._init_client()
 
-        logger.info(f"[AI REQUEST] provider=huggingface model={self.model_id}")
-
+        logger.info("[AI] Gemma request started")
+        logger.info(f"[AI] Model: {self.model_id}")
+        logger.info("[AI] Provider: Hugging Face")
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ]
 
-        max_retries = 3
-        backoff_seconds = 1.0
+        candidate_models = [self.model_id]
+        for alt in ["google/gemma-3-12b-it", "google/gemma-3-27b-it", "google/gemma-3-4b-it"]:
+            if alt not in candidate_models:
+                candidate_models.append(alt)
 
-        for attempt in range(1, max_retries + 1):
-            try:
-                response = self._client.chat.completions.create(
-                    model=self.model_id,
-                    messages=messages,
-                    max_tokens=max_new_tokens,
-                    temperature=settings.GEMMA_TEMPERATURE
-                )
-                if response and response.choices and len(response.choices) > 0:
-                    content = response.choices[0].message.content
-                    if content:
-                        logger.info(
-                            f"[REAL GEMMA INFERENCE] model={self.model_id} "
-                            f"[AI RESPONSE] provider=huggingface model={self.model_id} source=real_inference"
-                        )
-                        return content.strip()
-                raise ValueError("Empty choices in response from Hugging Face InferenceClient")
+        last_err = None
+        for current_model in candidate_models:
+            max_retries = 2
+            backoff_seconds = 1.0
 
-            except Exception as e:
-                err_msg = str(e)
-                is_transient = "429" in err_msg or "overloaded" in err_msg.lower() or "busy" in err_msg.lower() or "timeout" in err_msg.lower()
-                if is_transient and attempt < max_retries:
-                    logger.warning(
-                        f"[REAL GEMMA INFERENCE RETRY] model={self.model_id} attempt={attempt}/{max_retries} "
-                        f"transient_error={err_msg[:120]}, retrying in {backoff_seconds}s..."
+            for attempt in range(1, max_retries + 1):
+                try:
+                    logger.info(f"[AI] Attempting Gemma inference with model={current_model} (attempt {attempt})")
+                    response = self._client.chat.completions.create(
+                        model=current_model,
+                        messages=messages,
+                        max_tokens=max_new_tokens,
+                        temperature=settings.GEMMA_TEMPERATURE
                     )
-                    time.sleep(backoff_seconds)
-                    backoff_seconds *= 2
-                    continue
+                    if response and response.choices and len(response.choices) > 0:
+                        content = response.choices[0].message.content
+                        if content:
+                            logger.info(f"[AI] Inference succeeded with {current_model}")
+                            logger.info(
+                                f"[REAL GEMMA INFERENCE] model={current_model} "
+                                f"[AI RESPONSE] provider=huggingface model={current_model} source=real_inference"
+                            )
+                            return content.strip()
+                    raise ValueError(f"Empty choices in response from {current_model}")
 
-                logger.error(
-                    f"[REAL GEMMA INFERENCE FAILED] model={self.model_id} "
-                    f"error_type={type(e).__name__} error={err_msg[:200]}"
-                )
-                raise
+                except Exception as e:
+                    last_err = e
+                    err_msg = str(e)
+                    is_transient = "429" in err_msg or "overloaded" in err_msg.lower() or "busy" in err_msg.lower() or "timeout" in err_msg.lower()
+                    if is_transient:
+                        logger.warning(
+                            f"[REAL GEMMA INFERENCE RETRY] model={current_model} attempt={attempt}/{max_retries} "
+                            f"transient_error={err_msg[:120]}, switching or retrying in {backoff_seconds}s..."
+                        )
+                        time.sleep(backoff_seconds)
+                        backoff_seconds *= 2
+                        # If first retry of this model also failed with 429, break to next candidate Gemma model
+                        if attempt == max_retries:
+                            break
+                        continue
+
+                    # Non-transient error on this model, try next candidate
+                    logger.warning(f"[REAL GEMMA INFERENCE] Model {current_model} failed with non-transient error: {err_msg[:120]}")
+                    break
+
+        logger.error("[AI] Inference FAILED on all candidate Gemma models")
+        logger.error(f"[AI] Error type: {type(last_err).__name__}")
+        logger.error(
+            f"[REAL GEMMA INFERENCE FAILED] models={candidate_models} "
+            f"error_type={type(last_err).__name__} error={str(last_err)[:200]}"
+        )
+        if last_err:
+            raise last_err
+        raise RuntimeError("Gemma inference failed on all candidate models")
+
 
     def assess(self, input_data: MultimodalAssessmentInput) -> TraumaAssessment:
         start_time = time.perf_counter()
@@ -140,15 +162,9 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
         try:
             raw_output = self._run_inference(SYSTEM_PROMPT, user_prompt, max_new_tokens=settings.GEMMA_MAX_NEW_TOKENS)
         except Exception as e:
-            if settings.AI_ALLOW_FALLBACK:
-                logger.warning(f"[AI FALLBACK ACTIVE] Remote Gemma assessment failed ({e}). Routing assessment through fallback reasoning engine.")
-                return self._mock_fallback.assess(input_data)
             raise RuntimeError(f"Gemma remote assessment failed: {e}") from e
 
         if not raw_output:
-            if settings.AI_ALLOW_FALLBACK:
-                logger.info("[AI FALLBACK ACTIVE] Routing assessment through fallback reasoning engine")
-                return self._mock_fallback.assess(input_data)
             raise RuntimeError("Gemma remote assessment returned empty output.")
 
         duration_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
@@ -202,20 +218,9 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
         try:
             raw_response = self._run_inference(RESPONSE_SYSTEM_PROMPT, user_prompt, max_new_tokens=300)
         except Exception as e:
-            if settings.AI_ALLOW_FALLBACK:
-                logger.warning(f"[AI FALLBACK ACTIVE] Gemma conversational inference encountered error: {e}. Using reasoning fallback.")
-                return self._mock_fallback.generate_response(
-                    user_message=user_message,
-                    conversation_history=conversation_history,
-                    assessment=assessment,
-                    language=language
-                )
             raise RuntimeError(f"Gemma conversational inference failed: {e}") from e
 
         if not raw_response:
-            if settings.AI_ALLOW_FALLBACK:
-                logger.warning("[AI FALLBACK ACTIVE] Empty response generated — using safety fallback")
-                return self._fallback_response(language, has_safety_concern)
             raise RuntimeError("Gemma conversational inference returned empty response.")
 
         duration_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
@@ -254,22 +259,6 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
             duration_ms=duration_ms,
             device=self.device
         )
-
-    @staticmethod
-    def _fallback_response(language: str, has_safety_concern: bool) -> str:
-        """Minimal safe fallback when Gemma generates an empty response."""
-        lang = language.strip().lower()
-        if has_safety_concern:
-            if lang.startswith("ta"):
-                return "நாங்கள் இப்போது உங்களுக்கு உதவ தயாராக உள்ளோம். தயவுசெய்து 9787872051 என்ற எண்ணில் அழைக்கவும்."
-            if lang.startswith("hi"):
-                return "हम आपकी सहायता के लिए तैयार हैं। कृपया 9787872051 पर संपर्क करें।"
-            return "We are here to help you. Please reach our demo support at 9787872051."
-        if lang.startswith("ta"):
-            return "நீங்கள் பகிர்ந்துகொண்டதற்கு நன்றி. உங்கள் சொந்த வேகத்தில் தொடரலாம்."
-        if lang.startswith("hi"):
-            return "साझा करने के लिए धन्यवाद। हम यहाँ हैं।"
-        return "Thank you for reaching out. Take all the time you need — we're here with you."
 
 
 class MockGemmaAdapter(BaseLLMAssessmentAdapter):
@@ -614,17 +603,17 @@ class MockGemmaAdapter(BaseLLMAssessmentAdapter):
                 en=(
                     "We hear you, and your safety matters deeply to us right now. "
                     "You've taken a brave step by reaching out. "
-                    "If you're in immediate need of safe shelter or emergency assistance tonight, please contact our demo support line at 9787872051 — "
-                    "a trained advocate is available to coordinate immediate support."
+                    "If you're in immediate need of safe shelter or emergency assistance tonight, please reach out to local emergency services or a trusted support line — "
+                    "trained advocates and support services are available to assist you."
                 ),
                 ta=(
                     "நாங்கள் உங்கள் பாதுகாப்பை மிகவும் முக்கியமாக கருதுகிறோம். "
                     "நீங்கள் துணிச்சலாக உதவி கோரியிருக்கிறீர்கள். "
-                    "உடனடி பாதுகாப்பான தங்குமிடம் அல்லது அவசர உதவி தேவைப்பட்டால், எங்களின் டெமோ ஆதரவு எண் 9787872051 ஐ தொடர்பு கொள்ளுங்கள்."
+                    "உடனடி பாதுகாப்பான தங்குமிடம் அல்லது அவசர உதவி தேவைப்பட்டால், அவசர உதவி சேவைகளை தொடர்பு கொள்ளுங்கள்."
                 ),
                 hi=(
                     "हम आपकी बात सुन रहे हैं और आपकी सुरक्षा हमारी सर्वोच्च प्राथमिकता है। "
-                    "यदि आपको तत्काल सुरक्षित आश्रय या सहायता की आवश्यकता है, तो कृपया हमारे डेमो सहायता नंबर 9787872051 पर संपर्क करें।"
+                    "यदि आपको तत्काल सुरक्षित आश्रय या सहायता की आवश्यकता है, तो कृपया आपातकालीन सहायता सेवाओं से संपर्क करें।"
                 ),
             )
 

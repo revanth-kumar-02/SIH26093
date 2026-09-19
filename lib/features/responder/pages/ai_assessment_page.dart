@@ -4,7 +4,7 @@ import '../../../../core/routes/route_paths.dart';
 import '../../../../core/theme/app_colors.dart';
 
 /// Screen 15: AI Assessment Page
-/// Deep-dive view of multimodal evidence extracted by Gemma 3n E2B IT.
+/// Deep-dive view of multimodal evidence extracted by the AI engine.
 class AiAssessmentPage extends StatelessWidget {
   const AiAssessmentPage({super.key});
 
@@ -54,7 +54,7 @@ class AiAssessmentPage extends StatelessWidget {
                           '1. IndicConformer Multilingual ASR (22 Indian Languages)\n'
                           '2. Speech Emotion Recognition (Wav2Vec2 7-class distribution)\n'
                           '3. Text Emotion & MentalBERT Stress Detection (Dreaddit classifier)\n\n'
-                          'Gemma 3n E2B IT produces structured clinical observations without direct score generation. Scores are computed exclusively by the deterministic SVI Engine.',
+                          'The Multimodal AI produces structured clinical observations without direct score generation. Scores are computed exclusively by the deterministic SVI Engine.',
                           style: TextStyle(fontSize: 14, height: 1.5),
                         ),
                         const SizedBox(height: 16),

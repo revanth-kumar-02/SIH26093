@@ -240,7 +240,7 @@ class _CaseDetailsPageState extends State<CaseDetailsPage> with SingleTickerProv
                         children: [
                           Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
                           SizedBox(width: 8),
-                          Text('Gemma 3n E2B IT Multimodal Assessment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text('Multimodal AI Assessment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                         ],
                       ),
                       const Divider(height: 20),

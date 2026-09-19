@@ -19,6 +19,7 @@ class RoutePaths {
   static const String home = '/home';
   static const String aiChat = '/chat';
   static const String voiceInteraction = '/voice';
+  static const String grounding = '/grounding';
   static const String assessmentStatus = '/assessment-status';
   static const String supportEmergency = '/support';
 

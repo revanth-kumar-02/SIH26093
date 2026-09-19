@@ -1,4 +1,4 @@
-﻿from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any, Literal
 from app.schemas.emotion import SpeechEmotionResult, TextEmotionResult
 from app.schemas.stress import StressDetectionResult
@@ -29,7 +29,7 @@ class MultimodalAssessmentInput(BaseModel):
 class EvidenceItem(BaseModel):
     """Evidence snippet attributed to its specific input modality."""
     text: str = Field(..., description="Exact textual excerpt or acoustic indicator observed")
-    source: Literal["text", "speech", "multimodal"] = Field(..., description="Ground-truth source origin of the evidence")
+    source: str = Field(default="text", description="Ground-truth source origin of the evidence (e.g. text, speech, multimodal, text_emotion)")
 
 class AssessmentIndicator(BaseModel):
     """Individual trauma-informed indicator with evidence grounding and confidence."""

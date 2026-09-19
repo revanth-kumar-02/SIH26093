@@ -124,18 +124,29 @@ async def send_message(
         else MessageInputSource.TEXT
     )
 
+    logger.info(f"[CHAT] Request received — session={session_id[:8]}... lang={language} source={input_source.value}")
+
     try:
-        return await session_service.process_incoming_interaction(
+        logger.info(f"[CHAT] Session found — starting AI pipeline")
+        result = await session_service.process_incoming_interaction(
             db=db,
             session_id=session_id,
             message=request.message,
             input_source=input_source,
             language=language
         )
+        logger.info(f"[CHAT] AI pipeline completed successfully")
+        return result
     except KeyError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found"
+        )
+    except RuntimeError as re:
+        logger.error(f"[CHAT] AI SERVICE FAILURE — send_message failed: {re}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="TrueVoice AI is temporarily unavailable. Please try again."
         )
 
 @router.get("/{session_id}/messages", response_model=List[PersistedMessageItem])

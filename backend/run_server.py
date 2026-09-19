@@ -1,6 +1,9 @@
 import sys
+import warnings
 import asyncio
 import selectors
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 if sys.platform == "win32":
     try:
@@ -23,3 +26,4 @@ if __name__ == "__main__":
             asyncio.run(main())
     else:
         asyncio.run(main())
+
