@@ -55,6 +55,8 @@ class GemmaService:
         conversation_history: list = None,
         assessment: Optional[TraumaAssessment] = None,
         language: str = "en",
+        recent_assistant_openings: Optional[list] = None,
+        regeneration_directive: Optional[str] = None,
     ) -> str:
         """Generate a trauma-informed, empathetic, victim-facing conversational response."""
         if conversation_history is None:
@@ -64,7 +66,10 @@ class GemmaService:
             conversation_history=conversation_history,
             assessment=assessment,
             language=language,
+            recent_assistant_openings=recent_assistant_openings,
+            regeneration_directive=regeneration_directive,
         )
+
 
 gemma_service = GemmaService()
 

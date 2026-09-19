@@ -32,6 +32,8 @@ class BaseLLMAssessmentAdapter(ABC):
         conversation_history: List[ConversationTurn],
         assessment: Optional[TraumaAssessment],
         language: str = "en",
+        recent_assistant_openings: Optional[List[str]] = None,
+        regeneration_directive: Optional[str] = None,
     ) -> str:
         """Generate an empathetic, trauma-informed victim-facing conversational response.
 
@@ -40,3 +42,4 @@ class BaseLLMAssessmentAdapter(ABC):
         certainty of danger, or autonomous emergency dispatch.
         """
         pass
+

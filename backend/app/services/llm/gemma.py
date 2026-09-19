@@ -68,7 +68,8 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
         self,
         system_prompt: str,
         user_prompt: str,
-        max_new_tokens: int = 512
+        max_new_tokens: int = 512,
+        temperature: Optional[float] = None
     ) -> Optional[str]:
         """Remote chat completion via Hugging Face InferenceClient with retry backoff."""
         if not self._client:
@@ -82,11 +83,15 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
             {"role": "user", "content": user_prompt}
         ]
 
-        candidate_models = [self.model_id]
-        for alt in ["google/gemma-3-12b-it", "google/gemma-3-27b-it", "google/gemma-3-4b-it"]:
+        candidate_models = []
+        # Prioritize free serverless Gemma models to prevent 402 Payment Required errors
+        pref = self.model_id if self.model_id and self.model_id not in ("google/gemma-3-12b-it", "google/gemma-3-27b-it") else "google/gemma-3-4b-it"
+        candidate_models.append(pref)
+        for alt in ["google/gemma-3-4b-it", "google/gemma-3-1b-it"]:
             if alt not in candidate_models:
                 candidate_models.append(alt)
 
+        eff_temperature = temperature if temperature is not None else settings.GEMMA_TEMPERATURE
         last_err = None
         for current_model in candidate_models:
             max_retries = 2
@@ -99,7 +104,7 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
                         model=current_model,
                         messages=messages,
                         max_tokens=max_new_tokens,
-                        temperature=settings.GEMMA_TEMPERATURE
+                        temperature=eff_temperature
                     )
                     if response and response.choices and len(response.choices) > 0:
                         content = response.choices[0].message.content
@@ -115,6 +120,10 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
                 except Exception as e:
                     last_err = e
                     err_msg = str(e)
+                    if "402" in err_msg or "payment" in err_msg.lower() or "credits" in err_msg.lower():
+                        logger.warning(f"[REAL GEMMA INFERENCE] Model {current_model} requires credits (402), switching to next model...")
+                        break
+
                     is_transient = "429" in err_msg or "overloaded" in err_msg.lower() or "busy" in err_msg.lower() or "timeout" in err_msg.lower()
                     if is_transient:
                         logger.warning(
@@ -123,7 +132,6 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
                         )
                         time.sleep(backoff_seconds)
                         backoff_seconds *= 2
-                        # If first retry of this model also failed with 429, break to next candidate Gemma model
                         if attempt == max_retries:
                             break
                         continue
@@ -191,6 +199,8 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
         conversation_history: List[ConversationTurn],
         assessment: Optional[TraumaAssessment],
         language: str = "en",
+        recent_assistant_openings: Optional[List[str]] = None,
+        regeneration_directive: Optional[str] = None,
     ) -> str:
         """Generate a victim-facing empathetic conversational response using Gemma via remote HF inference."""
         start_time = time.perf_counter()
@@ -211,12 +221,20 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
             language=language,
             has_safety_concern=has_safety_concern,
             has_emotional_distress=has_emotional_distress,
+            recent_assistant_openings=recent_assistant_openings,
+            regeneration_directive=regeneration_directive,
         )
 
         logger.info(f"[GEMMA INVOCATION] language={language} — running conversational response inference")
         raw_response = None
         try:
-            raw_response = self._run_inference(RESPONSE_SYSTEM_PROMPT, user_prompt, max_new_tokens=300)
+            # Temperature 0.65 provides natural human emotional diversity while remaining grounded
+            raw_response = self._run_inference(
+                RESPONSE_SYSTEM_PROMPT,
+                user_prompt,
+                max_new_tokens=300,
+                temperature=0.65
+            )
         except Exception as e:
             raise RuntimeError(f"Gemma conversational inference failed: {e}") from e
 
@@ -231,6 +249,7 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
         )
 
         return response_text
+
 
     def _extract_json(self, text: str) -> Optional[Dict[str, Any]]:
         match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
@@ -483,6 +502,8 @@ class MockGemmaAdapter(BaseLLMAssessmentAdapter):
         conversation_history: List[ConversationTurn],
         assessment: Optional[TraumaAssessment],
         language: str = "en",
+        recent_assistant_openings: Optional[List[str]] = None,
+        regeneration_directive: Optional[str] = None,
     ) -> str:
         """Generate a context-aware victim-facing response based on message content and assessment."""
         start_t = time.perf_counter()

@@ -27,6 +27,7 @@ from app.services.llm.policy_guard import (
     is_programming_request,
     get_code_redirection_response,
     sanitize_response_output,
+    evaluate_response_quality,
 )
 from app.services.svi.service import svi_service
 from app.services.svi.schemas import SVIInput
@@ -562,13 +563,23 @@ class SessionService:
             logger.warning(f"Historical memory retrieval warning: {me}")
 
         # Step 7: Build multimodal assessment input & execute Gemma 3n E2B IT
+        # Retrieve recent conversation turns (up to 10) for deep narrative continuity
+        persisted_msgs = await self.get_persisted_messages(db, session_id)
         conversation_turns = []
-        for m in session.get("messages", [])[-6:]:
-            conversation_turns.append(ConversationTurn(
-                role="user" if m.get("sender_type") == "VICTIM" else "assistant",
-                text=m.get("content", ""),
-                timestamp=m.get("timestamp")
-            ))
+        if persisted_msgs:
+            for m in persisted_msgs[-10:]:
+                conversation_turns.append(ConversationTurn(
+                    role="user" if m.sender_type == MessageSenderType.VICTIM else "assistant",
+                    text=m.content,
+                    timestamp=m.timestamp.isoformat() if m.timestamp else None
+                ))
+        else:
+            for m in session.get("messages", [])[-10:]:
+                conversation_turns.append(ConversationTurn(
+                    role="user" if m.get("sender_type") == "VICTIM" else "assistant",
+                    text=m.get("content", ""),
+                    timestamp=m.get("timestamp")
+                ))
 
         assessment_input = MultimodalAssessmentInput(
             session_id=session_id,
@@ -712,12 +723,57 @@ class SessionService:
         """Synthesizes trauma-informed empathetic assistant response via Gemma LLM.
         ZERO silent fallback: raises RuntimeError if Gemma inference is unavailable or fails."""
         try:
+            # Separate prior turns from the current message to prevent history duplication
+            prior_turns = []
+            recent_assistant_openings = []
+            if conversation_turns:
+                for turn in conversation_turns:
+                    if turn.text.strip() == message.strip() and turn.role in ("user", "victim"):
+                        continue
+                    prior_turns.append(turn)
+                    if turn.role in ("assistant", "ai", "system") and turn.text.strip():
+                        words = turn.text.strip().split()
+                        opening = " ".join(words[:6])
+                        recent_assistant_openings.append(opening)
+
+            prior_turns = prior_turns[-8:]
+            recent_assistant_openings = recent_assistant_openings[-3:]
+
             llm_response = gemma_service.generate_response(
                 user_message=message,
-                conversation_history=conversation_turns or [],
+                conversation_history=prior_turns,
                 assessment=assessment,
-                language=language
+                language=language,
+                recent_assistant_openings=recent_assistant_openings,
             )
+
+            # Response Quality Check: Evaluate whether response falls back into formulaic clichés
+            quality = evaluate_response_quality(
+                response=llm_response or "",
+                user_message=message,
+                recent_assistant_openings=recent_assistant_openings
+            )
+
+            if not quality.is_acceptable:
+                logger.warning(
+                    f"[AI QUALITY CHECK FAILED] issues={quality.issues}, "
+                    f"regenerating with directive via REAL GEMMA (attempt 1/1)"
+                )
+                try:
+                    regenerated = gemma_service.generate_response(
+                        user_message=message,
+                        conversation_history=prior_turns,
+                        assessment=assessment,
+                        language=language,
+                        recent_assistant_openings=recent_assistant_openings,
+                        regeneration_directive=quality.directive,
+                    )
+                    if regenerated and regenerated.strip():
+                        logger.info("[AI] Real Gemma regeneration succeeded")
+                        llm_response = regenerated
+                except Exception as regen_err:
+                    logger.warning(f"[AI] Real Gemma regeneration attempt failed: {regen_err}")
+
             if llm_response and llm_response.strip():
                 raw_text = llm_response.strip()
                 logger.info("[AI] REAL GEMMA RESPONSE")
@@ -740,6 +796,7 @@ class SessionService:
             raise RuntimeError(f"Real Gemma chat inference failed: {err}") from err
 
         raise RuntimeError("Real Gemma chat inference returned an empty response.")
+
 
     def process_message(self, session_id: str, message: str) -> MessageResponse:
         """Synchronous in-memory fallback helper preserved for unit tests."""

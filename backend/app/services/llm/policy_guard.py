@@ -181,3 +181,102 @@ def sanitize_response_output(
     )
 
     return sanitized.strip()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LIGHTWEIGHT QUALITY CHECK & ANTI-REPETITION EVALUATOR
+# ─────────────────────────────────────────────────────────────────────────────
+
+GENERIC_CLICHES = [
+    (re.compile(r"\bthat sounds (?:like an? )?(?:incredibly|deeply|so|very)?\s*(?:painful|difficult|hurtful|tough|heavy|overwhelming|challenging)\b", re.IGNORECASE),
+     "generic empathy opening ('That sounds incredibly...')"),
+    (re.compile(r"\bit takes (?:a lot of |so much )?(?:courage|strength) to share\b", re.IGNORECASE),
+     "generic validation cliché ('It takes courage/strength to share')"),
+    (re.compile(r"\byou don't have to (?:carry|face) this (?:burden |alone)?(?:alone)?\b", re.IGNORECASE),
+     "formulaic phrase ('You don't have to carry this alone')"),
+    (re.compile(r"\b(?:would you like to|do you want to)\s+(?:talk|tell me)\s+(?:more\b|about\s+how\s+you(?:'re|\s+are)\s+feeling)\b", re.IGNORECASE),
+     "generic closing question ('Would you like to talk/tell me more')"),
+    (re.compile(r"\bthank you for (?:sharing|opening up|reaching out)\b", re.IGNORECASE),
+     "polite conversational filler ('Thank you for sharing')"),
+    (re.compile(r"\bi'm so sorry (?:that )?you(?:'re|\s+are) going through this\b", re.IGNORECASE),
+     "formulaic apology ('I'm so sorry you're going through this')"),
+]
+
+
+class QualityCheckResult:
+    """Result of lightweight response quality evaluation."""
+    def __init__(self, is_acceptable: bool, issues: List[str], directive: str = ""):
+        self.is_acceptable = is_acceptable
+        self.issues = issues
+        self.directive = directive
+
+    def __repr__(self) -> str:
+        return f"<QualityCheckResult acceptable={self.is_acceptable} issues={self.issues}>"
+
+
+def evaluate_response_quality(
+    response: str,
+    user_message: str,
+    recent_assistant_openings: Optional[List[str]] = None
+) -> QualityCheckResult:
+    """Evaluates response for repetitive generic clichés and lack of narrative grounding.
+    
+    Returns QualityCheckResult. If not acceptable, includes an actionable directive
+    for a single targeted regeneration by Real Gemma.
+    """
+    if not response or not response.strip():
+        return QualityCheckResult(
+            is_acceptable=False,
+            issues=["empty_response"],
+            directive="Provide a warm, attentive response (2-4 sentences) acknowledging the user's situation."
+        )
+
+    clean_resp = response.strip()
+    issues = []
+
+    # Check for generic clichés
+    detected_cliches = []
+    for pattern, description in GENERIC_CLICHES:
+        if pattern.search(clean_resp):
+            detected_cliches.append(description)
+
+    # Check if opening sentence relies immediately on a generic template
+    first_sentence = clean_resp.split(".")[0].strip() if "." in clean_resp else clean_resp
+    first_pattern = GENERIC_CLICHES[0][0]
+    starts_with_generic = bool(first_pattern.search(first_sentence))
+
+    if starts_with_generic:
+        issues.append("starts_with_generic_cliche")
+
+    # If 2 or more cliches are detected, flag as overly formulaic
+    if len(detected_cliches) >= 2:
+        issues.append(f"multiple_cliches_detected: {', '.join(detected_cliches)}")
+
+    # Check for repeated openings from recent assistant turns
+    if recent_assistant_openings:
+        resp_words = clean_resp.lower().split()[:5]
+        resp_prefix = " ".join(resp_words)
+        for prev_opening in recent_assistant_openings:
+            prev_words = prev_opening.lower().split()[:5]
+            prev_prefix = " ".join(prev_words)
+            if resp_prefix and prev_prefix and resp_prefix == prev_prefix:
+                issues.append(f"repeated_recent_opening: '{resp_prefix}'")
+                break
+
+    if not issues:
+        return QualityCheckResult(is_acceptable=True, issues=[])
+
+    # Build targeted directive for regeneration
+    critique_items = []
+    if starts_with_generic:
+        critique_items.append("Do NOT start with 'That sounds incredibly...' or any formulaic empathy opener.")
+    if detected_cliches:
+        critique_items.append(f"Avoid formulaic phrases like: {', '.join(detected_cliches)}.")
+    critique_items.append(
+        "Speak directly and specifically about the actual people, events, or situation mentioned in: "
+        f"'{user_message[:100]}...'. Respond with authentic, grounded human reflection."
+    )
+
+    directive = " ".join(critique_items)
+    return QualityCheckResult(is_acceptable=False, issues=issues, directive=directive)
+
