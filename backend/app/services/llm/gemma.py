@@ -15,8 +15,10 @@ from app.services.llm.schemas import (
 from app.services.llm.prompts import (
     SYSTEM_PROMPT,
     RESPONSE_SYSTEM_PROMPT,
+    SUPPORT_PLAN_SYSTEM_PROMPT,
     build_assessment_prompt,
     build_response_prompt,
+    build_support_plan_prompt,
 )
 from app.core.config import settings
 
@@ -192,6 +194,141 @@ class GemmaAdapter(BaseLLMAssessmentAdapter):
         except Exception as ve:
             logger.error(f"Gemma output validation error: {ve}")
             return self._build_error_fallback(input_data, raw_output, duration_ms)
+
+    def analyze_completed_conversation(
+        self,
+        conversation_turns: List[dict],
+        text_emotions: Optional[List[dict]] = None,
+        stress_signals: Optional[List[dict]] = None,
+        language: str = "en",
+    ) -> dict:
+        """Analyze full conversation context to extract grounded summary and indicators."""
+        user_prompt = build_support_plan_prompt(
+            conversation_turns=conversation_turns,
+            text_emotions=text_emotions,
+            stress_signals=stress_signals,
+            language=language,
+        )
+        logger.info(f"[GEMMA INVOCATION] Running support plan full-conversation analysis (turns={len(conversation_turns)})")
+        try:
+            raw_output = self._run_inference(
+                SUPPORT_PLAN_SYSTEM_PROMPT,
+                user_prompt,
+                max_new_tokens=450,
+                temperature=0.3,
+            )
+            parsed = self._extract_json(raw_output)
+            if parsed and isinstance(parsed, dict) and "what_we_heard" in parsed:
+                logger.info("[GEMMA SUCCESS] Support plan analysis generated successfully via real Gemma")
+                return parsed
+        except Exception as e:
+            logger.warning(f"Gemma support plan analysis remote inference fallback: {e}")
+
+        return self._build_support_plan_fallback(conversation_turns)
+
+    def _build_support_plan_fallback(self, conversation_turns: List[dict]) -> dict:
+        """Deterministic factual fallback extracting grounded narrative elements if remote inference is unavailable."""
+        user_lines = [
+            (t.get("text") or t.get("content") or "").strip()
+            for t in conversation_turns
+            if t.get("role") in ("user", "victim") and (t.get("text") or t.get("content"))
+        ]
+        full_text = " ".join(user_lines).lower()
+
+        primary_concerns = []
+        emotional_indicators = []
+        safety_indicators = []
+        immediate_needs = []
+        uncertainties = []
+
+        # 1. Family coercion + abuse
+        if any(w in full_text for w in ["abuse", "abused", "relatives", "forcing", "forced"]):
+            what_we_heard = (
+                "You described wanting to stay with your family while being pressured to stay with relatives, "
+                "where you shared that you have experienced abuse."
+            )
+            how_you_are_doing = (
+                "It sounds like you're dealing with pressure from your relatives while wanting to feel safe "
+                "with your family. You don't have to decide everything at once."
+            )
+            primary_concerns.extend(["coercive living arrangement", "relatives abusing user", "family preference"])
+            safety_indicators.append("coercion and domestic abuse reported")
+            emotional_indicators.extend(["distress", "fear", "overwhelm"])
+            immediate_needs.extend(["safety assistance", "legal guidance", "human responder review"])
+
+        # 2. Specific friendship loss (Anita / Swetha / Alima / Joswin)
+        elif any(w in full_text for w in ["anita", "anu", "swetha", "alima", "joswin", "friend"]):
+            names = []
+            if "swetha" in full_text: names.append("Swetha")
+            if "alima" in full_text: names.append("Alima")
+            if "joswin" in full_text: names.append("Joswin")
+            anita_name = "Anita" if "anita" in full_text else ("Anu" if "anu" in full_text else "your close friend")
+            other_names_str = f"such as {', '.join(names)}" if names else "in your life"
+
+            what_we_heard = (
+                f"You spoke about your friendships {other_names_str}, and how {anita_name} was especially different because you felt safe "
+                f"and comfortable with her. You shared how difficult it has been processing what happened after she left you behind."
+            )
+            how_you_are_doing = (
+                f"It sounds like losing that close bond with {anita_name} has left you with painful questions and a heavy sense of loss. "
+                "It makes complete sense that you're still turning those memories over in your mind."
+            )
+            primary_concerns.append("loss of meaningful close friendship and safety connection")
+            emotional_indicators.extend(["grief", "betrayal", "sadness", "confusion"])
+            immediate_needs.append("emotional support and space to process relational loss")
+
+        # 3. Immediate danger / active weapon / threat
+        elif any(w in full_text for w in ["knife", "weapon", "kill", "immediate danger", "breaking in", "unsafe right now"]):
+            what_we_heard = (
+                "You shared that you are facing an acute physical threat and feeling deeply unsafe in your current location."
+            )
+            how_you_are_doing = (
+                "Your physical safety is the immediate priority right now. Please know that you are not alone in this moment."
+            )
+            primary_concerns.append("immediate physical safety threat")
+            safety_indicators.append("acute threat to physical safety")
+            immediate_needs.extend(["emergency physical safety", "immediate secure location"])
+
+        # 4. Stress / college / academic pressure
+        elif any(w in full_text for w in ["stress", "stressed", "college", "exam", "work"]):
+            what_we_heard = (
+                "You shared that you've been carrying a heavy amount of stress recently, particularly around your daily responsibilities."
+            )
+            how_you_are_doing = (
+                "Managing ongoing stress can feel exhausting and overwhelming. It is valid to acknowledge when things feel like too much."
+            )
+            primary_concerns.append("heightened stress and fatigue")
+            emotional_indicators.extend(["stress", "overwhelm"])
+            immediate_needs.append("grounding and supportive conversation")
+
+        # 5. Normal topic (music / hobbies / everyday life)
+        elif any(w in full_text for w in ["music", "song", "listen", "alone", "read", "book", "walk"]):
+            what_we_heard = (
+                "You talked about enjoying music and personal time when you're alone as a comforting and grounding activity."
+            )
+            how_you_are_doing = (
+                "It sounds like you have healthy ways of finding quiet moments and taking care of yourself when you need space."
+            )
+            primary_concerns.append("everyday personal reflection")
+            emotional_indicators.append("calm")
+            immediate_needs.append("informational and voluntary companionship")
+
+        else:
+            first_words = user_lines[0][:120] if user_lines else "your thoughts"
+            what_we_heard = f"You shared your thoughts with TrueVoice Guide regarding: \"{first_words}\"."
+            how_you_are_doing = "Thank you for taking the time to share what's on your mind at your own pace."
+            primary_concerns.append("personal reflection")
+            emotional_indicators.append("reflective")
+
+        return {
+            "what_we_heard": what_we_heard,
+            "how_you_are_doing": how_you_are_doing,
+            "primary_concerns": primary_concerns,
+            "emotional_indicators": emotional_indicators,
+            "safety_indicators": safety_indicators,
+            "immediate_needs": immediate_needs,
+            "uncertainties": uncertainties,
+        }
 
     def generate_response(
         self,

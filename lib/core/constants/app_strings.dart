@@ -26,14 +26,15 @@ class AppStrings {
     }
   }
 
-  // ── Demo Emergency / Support Contact Number (Demo Requirement) ───
-  /// Demo helpline number explicitly for testing/demonstration.
-  /// Not presented as an official government emergency number.
-  static const String demoContactNumber = '9787872051';
-  static const String demoSupportLabel = 'Demo Support (9787872051)';
-  static const String demoEmergencyLabel = 'Demo Emergency Line (9787872051)';
+  // ── Verified Emergency / Support Contact Numbers ───
+  /// Nationwide verified emergency helpline numbers in India.
+  static const String emergencyContactNumber = '112';
+  static const String womenHelplineNumber = '181';
+  static const String demoContactNumber = '112'; // Backwards-compatible alias to 112
+  static const String demoSupportLabel = 'National Emergency (112)';
+  static const String demoEmergencyLabel = 'Women Helpline (181)';
   static const String demoDisclaimer =
-      'This is a demonstration contact number for testing. For actual nationwide emergency services in India, dial 112.';
+      'For nationwide emergency assistance across India, dial 112 for immediate police, fire, or ambulance dispatch, or 181 for women support services.';
 
   // ── App Identity ────────────────────────────────────────────────
   static const String appName = 'TrueVoice';
@@ -80,20 +81,20 @@ class AppStrings {
     // English
     'en': {
       'sanctuary_home': 'TrueVoice Home',
-      'nhaa_sanctuary': 'TrueVoice',
-      'safe_encrypted': 'Encrypted, discrete & safe',
+      'nhaa_sanctuary': 'TrueVoice Sanctuary',
+      'safe_encrypted': 'Encrypted, safe & confidential',
       'how_share': 'How would you like to share what happened?',
-      'choose_pace': 'Choose the option that feels most comfortable right now.',
+      'choose_pace': 'Choose the way that feels most comfortable for you.',
       'talk_with_us': 'Talk with us',
-      'talk_subtitle': 'Speak in your comfortable language with adaptive AI listening',
+      'talk_subtitle': 'Share using your voice in your comfortable language',
       'type_it_out': 'Type it out',
-      'type_subtitle': 'Express yourself through guided trauma-informed text chat',
-      'support_pathways': 'Supportive Care Pathways',
+      'type_subtitle': 'Write your thoughts privately through text chat',
+      'support_pathways': 'Support Pathways',
       'crisis_banner_title': 'Feeling unsafe right now?',
-      'crisis_banner_sub': 'Connect to demo support helpline immediately',
-      'demo_call': 'Demo Call (9787872051)',
-      'demo_support': 'Demo Support (9787872051)',
-      'demo_line': 'Demo Helpline (9787872051)',
+      'crisis_banner_sub': 'Connect to emergency helpline immediately',
+      'demo_call': 'Emergency Call (112)',
+      'demo_support': 'National Emergency (112)',
+      'demo_line': 'Women Helpline (181)',
       'chat_title': 'Sanctuary Guide',
       'chat_hint': 'Type your thoughts here at your own pace...',
       'chat_listening': 'Listening gently... Take your time.',
@@ -123,10 +124,10 @@ class AppStrings {
       'type_subtitle': 'உரையாடல் மூலம் அமைதியாக உங்கள் எண்ணங்களை எழுதுங்கள்',
       'support_pathways': 'ஆதரவு சேவைகள்',
       'crisis_banner_title': 'பாதுகாப்பற்றதாக உணர்கிறீர்களா?',
-      'crisis_banner_sub': 'மாதிரி உதவி எண்ணை உடனே தொடர்பு கொள்ளுங்கள்',
-      'demo_call': 'மாதிரி அழைப்பு (9787872051)',
-      'demo_support': 'மாதிரி உதவி (9787872051)',
-      'demo_line': 'மாதிரி உதவி எண் (9787872051)',
+      'crisis_banner_sub': 'அவசர உதவி எண்ணை உடனே தொடர்பு கொள்ளுங்கள்',
+      'demo_call': 'அவசர அழைப்பு (112)',
+      'demo_support': 'தேசிய அவசர உதவி (112)',
+      'demo_line': 'மகளிர் உதவி எண் (181)',
       'chat_title': 'உதவி வழிகாட்டி',
       'chat_hint': 'உங்கள் எண்ணங்களை உங்கள் சொந்த வேகத்தில் எழுதுங்கள்...',
       'chat_listening': 'கவனமாகக் கேட்கிறது... நிதானமாகப் பேசுங்கள்.',
@@ -156,10 +157,10 @@ class AppStrings {
       'type_subtitle': 'टेक्स्ट चैट के माध्यम से अपने विचार लिखें',
       'support_pathways': 'सहायता विकल्प',
       'crisis_banner_title': 'क्या आप असुरक्षित महसूस कर रहे हैं?',
-      'crisis_banner_sub': 'डेमो सहायता हेल्पलाइन से तुरंत संपर्क करें',
-      'demo_call': 'डेमो कॉल (9787872051)',
-      'demo_support': 'डेमो सहायता (9787872051)',
-      'demo_line': 'डेमो हेल्पलाइन (9787872051)',
+      'crisis_banner_sub': 'आपातकालीन हेल्पलाइन से तुरंत संपर्क करें',
+      'demo_call': 'आपातकालीन कॉल (112)',
+      'demo_support': 'राष्ट्रीय आपातकालीन (112)',
+      'demo_line': 'महिला हेल्पलाइन (181)',
       'chat_title': 'सहायता मार्गदर्शक',
       'chat_hint': 'अपनी गति से यहां अपने विचार लिखें...',
       'chat_listening': 'ध्यान से सुन रहे हैं... आराम से बोलें।',
@@ -189,10 +190,10 @@ class AppStrings {
       'type_subtitle': 'టెక్స్ట్ చాట్ ద్వారా మీ భావాలను పంచుకోండి',
       'support_pathways': 'మద్దతు మార్గాలు',
       'crisis_banner_title': 'అభద్రతా భావనగా ఉందా?',
-      'crisis_banner_sub': 'డెమో హెల్ప్‌లైన్‌ను వెంటనే సంప్రదించండి',
-      'demo_call': 'డెమో కాల్ (9787872051)',
-      'demo_support': 'డెమో సహాయం (9787872051)',
-      'demo_line': 'డెమో హెల్ప్‌లైన్ (9787872051)',
+      'crisis_banner_sub': 'అత్యవసర హెల్ప్‌లైన్‌ను వెంటనే సంప్రదించండి',
+      'demo_call': 'అత్యవసర కాల్ (112)',
+      'demo_support': 'జాతీయ అత్యవసర సహాయం (112)',
+      'demo_line': 'మహిళా హెల్ప్‌లైన్ (181)',
       'chat_title': 'గైడ్',
       'chat_hint': 'మీ ఆలోచనలను ఇక్కడ టైప్ చేయండి...',
       'chat_listening': 'వింటున్నాము... సమయం తీసుకోండి.',
@@ -222,10 +223,10 @@ class AppStrings {
       'type_subtitle': 'ಟೆಕ್ಸ್ಟ್ ಚಾಟ್ ಮೂಲಕ ನಿಮ್ಮ ಆಲೋಚನೆಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳಿ',
       'support_pathways': 'ಬೆಂಬಲ ಮಾರ್ಗಗಳು',
       'crisis_banner_title': 'ಅಸುರಕ್ಷಿತ ಭಾವನೆ ಇದೆಯೇ?',
-      'crisis_banner_sub': 'ಡೆಮೊ ಸಹಾಯವಾಣಿಯನ್ನು ತಕ್ಷಣ ಸಂಪರ್ಕಿಸಿ',
-      'demo_call': 'ಡೆಮೊ ಕರೆ (9787872051)',
-      'demo_support': 'ಡೆಮೊ ಬೆಂಬಲ (9787872051)',
-      'demo_line': 'ಡೆಮೊ ಸಹಾಯವಾಣಿ (9787872051)',
+      'crisis_banner_sub': 'ತುರ್ತು ಸಹಾಯವಾಣಿಯನ್ನು ತಕ್ಷಣ ಸಂಪರ್ಕಿಸಿ',
+      'demo_call': 'ತುರ್ತು ಕರೆ (112)',
+      'demo_support': 'ರಾಷ್ಟ್ರೀಯ ತುರ್ತು ಸಹಾಯ (112)',
+      'demo_line': 'ಮಹಿಳಾ ಸಹಾಯವಾಣಿ (181)',
       'chat_title': 'ಮಾರ್ಗದರ್ಶಿ',
       'chat_hint': 'ನಿಮ್ಮ ಆಲೋಚನೆಗಳನ್ನು ಇಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ...',
       'chat_listening': 'ಗಮನವಿಟ್ಟು ಆಲಿಸುತ್ತಿದ್ದೇವೆ...',
@@ -255,10 +256,10 @@ class AppStrings {
       'type_subtitle': 'മെസ്സേജ് ചാറ്റിലൂടെ നിങ്ങളുടെ ചിന്തകൾ പങ്കുവെക്കൂ',
       'support_pathways': 'സഹായ മാർഗ്ഗങ്ങൾ',
       'crisis_banner_title': 'അരക്ഷിതാവസ്ഥ തോന്നുന്നുണ്ടോ?',
-      'crisis_banner_sub': 'ഡെമോ ഹെൽപ്പ് ലൈനുമായി ഉടൻ ബന്ധപ്പെടൂ',
-      'demo_call': 'ഡെമോ കോൾ (9787872051)',
-      'demo_support': 'ഡെമോ സഹായം (9787872051)',
-      'demo_line': 'ഡെമോ ഹെൽപ്പ് ലൈൻ (9787872051)',
+      'crisis_banner_sub': 'അടിയന്തര ഹെൽപ്പ് ലൈനുമായി ഉടൻ ബന്ധപ്പെടൂ',
+      'demo_call': 'അടിയന്തര കോൾ (112)',
+      'demo_support': 'ദേശീയ അടിയന്തര സഹായം (112)',
+      'demo_line': 'വനിതാ ഹെൽപ്പ് ലൈൻ (181)',
       'chat_title': 'വഴികാട്ടി',
       'chat_hint': 'നിങ്ങളുടെ ചിന്തകൾ ഇവിടെ ടൈപ്പ് ചെയ്യുക...',
       'chat_listening': 'ശ്രദ്ധാപൂർവ്വം കേൾക്കുന്നു... സാവധാനം സംസാരിക്കൂ.',

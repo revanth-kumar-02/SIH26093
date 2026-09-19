@@ -70,6 +70,21 @@ class GemmaService:
             regeneration_directive=regeneration_directive,
         )
 
+    def analyze_completed_conversation(
+        self,
+        conversation_turns: list,
+        text_emotions: Optional[list] = None,
+        stress_signals: Optional[list] = None,
+        language: str = "en"
+    ) -> dict:
+        """Analyze full conversation context to extract grounded summary and indicators."""
+        return self._adapter.analyze_completed_conversation(
+            conversation_turns=conversation_turns,
+            text_emotions=text_emotions,
+            stress_signals=stress_signals,
+            language=language
+        )
+
 
 gemma_service = GemmaService()
 

@@ -74,7 +74,7 @@ class CrisisBanner extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'You are connecting to Demo Support ($number).',
+              'You are connecting to Emergency Helpline ($number).',
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.onSurface, height: 1.4),
             ),
             const SizedBox(height: 8),
@@ -107,7 +107,7 @@ class CrisisBanner extends StatelessWidget {
               Navigator.of(ctx).pop();
               _launchDialer(context, number);
             },
-            child: Text('Dial $number (Demo)'),
+            child: Text('Dial $number'),
           ),
         ],
       ),
@@ -181,7 +181,7 @@ class CrisisBanner extends StatelessWidget {
                       ),
                       onPressed: () => _showHelplineDialog(
                         context,
-                        AppStrings.demoContactNumber,
+                        AppStrings.emergencyContactNumber,
                         AppStrings.demoSupportLabel,
                       ),
                       icon: const Icon(Icons.call, size: 16),
@@ -207,7 +207,7 @@ class CrisisBanner extends StatelessWidget {
                       ),
                       onPressed: () => _showHelplineDialog(
                         context,
-                        AppStrings.demoContactNumber,
+                        AppStrings.womenHelplineNumber,
                         AppStrings.demoEmergencyLabel,
                       ),
                       icon: const Icon(Icons.support_agent, size: 16, color: AppColors.onSurface),
@@ -231,7 +231,7 @@ class CrisisBanner extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       onTap: () => _showHelplineDialog(
         context,
-        AppStrings.demoContactNumber,
+        AppStrings.emergencyContactNumber,
         AppStrings.demoSupportLabel,
       ),
       child: Container(

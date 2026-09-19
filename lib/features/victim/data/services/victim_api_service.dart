@@ -82,6 +82,18 @@ class VictimApiService {
     return BackendAssessment.fromJson(res);
   }
 
+  /// Request personalized post-chat support plan grounded in full conversation
+  Future<PersonalizedSupportPlanModel> getSupportPlan({
+    required String sessionId,
+  }) async {
+    final res = await _client.postWithTimeout(
+      ApiConfig.sessionSupportPlanUrl(sessionId),
+      body: {},
+      timeout: const Duration(seconds: 45),
+    );
+    return PersonalizedSupportPlanModel.fromJson(res);
+  }
+
   /// Upload recorded audio bytes for ASR transcription
   Future<BackendTranscription> transcribeAudio({
     required String sessionId,

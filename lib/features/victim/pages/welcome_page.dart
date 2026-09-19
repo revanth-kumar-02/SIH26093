@@ -54,7 +54,7 @@ class WelcomePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Connect directly with Demo Support (9787872051) for immediate assistance.',
+              'Connect directly with National Emergency Helpline (112) for immediate assistance.',
               style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.4),
             ),
             const SizedBox(height: 8),
@@ -85,9 +85,9 @@ class WelcomePage extends StatelessWidget {
             ),
             onPressed: () {
               Navigator.of(ctx).pop();
-              _launchDialer(context, AppStrings.demoContactNumber);
+              _launchDialer(context, AppStrings.emergencyContactNumber);
             },
-            child: const Text('Call Demo (9787872051)'),
+            child: const Text('Call 112'),
           ),
         ],
       ),
@@ -133,7 +133,7 @@ class WelcomePage extends StatelessWidget {
                                 Icon(Icons.phone_in_talk, size: 15, color: AppColors.tertiary),
                                 SizedBox(width: 6),
                                 Text(
-                                  'Demo Support: ',
+                                  'Emergency Helpline: ',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
@@ -141,7 +141,7 @@ class WelcomePage extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '9787872051',
+                                  '112',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -370,7 +370,7 @@ class WelcomePage extends StatelessWidget {
                                       ),
                                     ),
                                     Text(
-                                      'Call Demo Support (9787872051)',
+                                      'Call Emergency (112)',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,

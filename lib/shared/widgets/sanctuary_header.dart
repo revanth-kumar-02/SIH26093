@@ -83,7 +83,7 @@ class SanctuaryHeader extends StatelessWidget implements PreferredSizeWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Connect directly with Demo Support (9787872051) for immediate assistance.',
+              'Connect directly with National Emergency Helpline (112) for immediate assistance.',
               style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.4),
             ),
             const SizedBox(height: 8),
@@ -114,9 +114,9 @@ class SanctuaryHeader extends StatelessWidget implements PreferredSizeWidget {
             ),
             onPressed: () {
               Navigator.of(ctx).pop();
-              _launchDialer(context, AppStrings.demoContactNumber);
+              _launchDialer(context, AppStrings.emergencyContactNumber);
             },
-            child: const Text('Call Demo (9787872051)'),
+            child: const Text('Call 112'),
           ),
         ],
       ),
@@ -305,7 +305,7 @@ class SanctuaryHeader extends StatelessWidget implements PreferredSizeWidget {
                   Icon(Icons.call, color: AppColors.onSecondaryContainer, size: 13),
                   SizedBox(width: 4),
                   Text(
-                    'Demo: 9787872051',
+                    'Helpline: 112',
                     style: TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,

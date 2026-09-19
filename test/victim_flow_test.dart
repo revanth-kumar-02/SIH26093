@@ -30,7 +30,7 @@ void main() {
 
     expect(find.text('You are safe to begin at your own pace.'), findsOneWidget);
     expect(find.text('Begin When Ready'), findsOneWidget);
-    expect(find.text('9787872051'), findsWidgets);
+    expect(find.text('112'), findsWidgets);
   });
 
   testWidgets('LanguageSelectionPage renders languages and selection', (tester) async {
@@ -112,7 +112,7 @@ void main() {
     expect(find.text('Proceed to Support Options'), findsOneWidget);
   });
 
-  testWidgets('SupportEmergencyPage renders emergency options', (tester) async {
+  testWidgets('SupportEmergencyPage renders personalized support plan structure', (tester) async {
     tester.view.physicalSize = const Size(430, 932);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -120,7 +120,7 @@ void main() {
     await tester.pumpWidget(createTestWidget(const SupportEmergencyPage()));
     await tester.pump();
 
-    expect(find.text('Dedicated Human Advocate'), findsOneWidget);
-    expect(find.text('Demo Support (9787872051)'), findsWidgets);
+    expect(find.text('Your Support Plan'), findsOneWidget);
+    expect(find.text('What We Heard'), findsOneWidget);
   });
 }

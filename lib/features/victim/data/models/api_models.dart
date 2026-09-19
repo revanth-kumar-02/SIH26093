@@ -1,4 +1,4 @@
-﻿// Typed DTO models matching FastAPI backend schemas for victim interactions.
+// Typed DTO models matching FastAPI backend schemas for victim interactions.
 
 class BackendSession {
   final String sessionId;
@@ -225,3 +225,150 @@ class BackendPersistedMessage {
     );
   }
 }
+
+class VerifiedEmergencyResourceModel {
+  final String title;
+  final String number;
+  final String description;
+
+  const VerifiedEmergencyResourceModel({
+    required this.title,
+    required this.number,
+    required this.description,
+  });
+
+  factory VerifiedEmergencyResourceModel.fromJson(Map<String, dynamic> json) {
+    return VerifiedEmergencyResourceModel(
+      title: json['title'] as String? ?? 'National Emergency',
+      number: json['number'] as String? ?? '112',
+      description: json['description'] as String? ?? '',
+    );
+  }
+}
+
+class SupportRecommendationModel {
+  final String recommendationId;
+  final String category;
+  final String priority;
+  final String reason;
+  final List<String> supportingIndicators;
+  final String responderAction;
+  final bool requiresHumanReview;
+
+  const SupportRecommendationModel({
+    required this.recommendationId,
+    required this.category,
+    required this.priority,
+    required this.reason,
+    required this.supportingIndicators,
+    required this.responderAction,
+    required this.requiresHumanReview,
+  });
+
+  factory SupportRecommendationModel.fromJson(Map<String, dynamic> json) {
+    final rawIndicators = json['supporting_indicators'] as List<dynamic>? ?? [];
+    return SupportRecommendationModel(
+      recommendationId: json['recommendation_id'] as String? ?? '',
+      category: json['category'] as String? ?? '',
+      priority: json['priority'] as String? ?? 'routine',
+      reason: json['reason'] as String? ?? '',
+      supportingIndicators: rawIndicators.map((e) => e.toString()).toList(),
+      responderAction: json['responder_action'] as String? ?? '',
+      requiresHumanReview: json['requires_human_review'] as bool? ?? true,
+    );
+  }
+
+  String get displayTitle {
+    switch (category) {
+      case 'COUNSELLING_SUPPORT':
+        return 'Counselling Support';
+      case 'SAFETY_ASSISTANCE':
+        return 'Safety Planning & Assistance';
+      case 'LEGAL_AID':
+        return 'Confidential Legal Guidance';
+      case 'SOCIAL_SUPPORT':
+        return 'Social & Shelter Support';
+      case 'MEDICAL_ASSISTANCE':
+        return 'Medical Attention Referral';
+      case 'EMERGENCY_SUPPORT':
+        return 'Immediate Emergency Protection';
+      case 'POLICE_ASSISTANCE':
+        return 'Special Police Liaison Review';
+      default:
+        return category.replaceAll('_', ' ');
+    }
+  }
+}
+
+class PersonalizedSupportPlanModel {
+  final String sessionId;
+  final String whatWeHeard;
+  final String howYouAreDoing;
+  final List<String> primaryConcerns;
+  final List<String> emotionalIndicators;
+  final bool immediateSafetyNeeded;
+  final String? immediateSafetyMessage;
+  final VerifiedEmergencyResourceModel? verifiedEmergencyResource;
+  final List<SupportRecommendationModel> recommendations;
+  final bool hasHumanAssignment;
+  final String humanReviewStatus;
+  final String humanReviewMessage;
+  final List<Map<String, String>> userChoices;
+  final List<String> uncertainties;
+  final String createdAt;
+
+  const PersonalizedSupportPlanModel({
+    required this.sessionId,
+    required this.whatWeHeard,
+    required this.howYouAreDoing,
+    required this.primaryConcerns,
+    required this.emotionalIndicators,
+    required this.immediateSafetyNeeded,
+    this.immediateSafetyMessage,
+    this.verifiedEmergencyResource,
+    required this.recommendations,
+    required this.hasHumanAssignment,
+    required this.humanReviewStatus,
+    required this.humanReviewMessage,
+    required this.userChoices,
+    required this.uncertainties,
+    required this.createdAt,
+  });
+
+  factory PersonalizedSupportPlanModel.fromJson(Map<String, dynamic> json) {
+    final rawRecs = json['recommendations'] as List<dynamic>? ?? [];
+    final recs = rawRecs
+        .map((r) => SupportRecommendationModel.fromJson(r as Map<String, dynamic>))
+        .toList();
+
+    final emJson = json['verified_emergency_resource'] as Map<String, dynamic>?;
+    final verifiedEm = emJson != null ? VerifiedEmergencyResourceModel.fromJson(emJson) : null;
+
+    final rawChoices = json['user_choices'] as List<dynamic>? ?? [];
+    final choices = rawChoices.map((c) {
+      if (c is Map) {
+        return c.map((k, v) => MapEntry(k.toString(), v.toString()));
+      }
+      return <String, String>{};
+    }).toList();
+
+    return PersonalizedSupportPlanModel(
+      sessionId: json['session_id'] as String? ?? '',
+      whatWeHeard: json['what_we_heard'] as String? ?? '',
+      howYouAreDoing: json['how_you_are_doing'] as String? ?? '',
+      primaryConcerns: (json['primary_concerns'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
+      emotionalIndicators: (json['emotional_indicators'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
+      immediateSafetyNeeded: json['immediate_safety_needed'] as bool? ?? false,
+      immediateSafetyMessage: json['immediate_safety_message'] as String?,
+      verifiedEmergencyResource: verifiedEm,
+      recommendations: recs,
+      hasHumanAssignment: json['has_human_assignment'] as bool? ?? false,
+      humanReviewStatus: json['human_review_status'] as String? ?? 'Human review recommended',
+      humanReviewMessage: json['human_review_message'] as String? ?? '',
+      userChoices: choices,
+      uncertainties: (json['uncertainties'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
+      createdAt: json['created_at'] as String? ?? '',
+    );
+  }
+}
+

@@ -238,3 +238,78 @@ Highlight key observations, explicit uncertainties, potential safety concerns, a
 Output ONLY the JSON object.
 """
     return prompt
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST-CHAT SUPPORT PLAN PROMPTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+SUPPORT_PLAN_SYSTEM_PROMPT = """You are TrueVoice Support Planner, analyzing a completed conversation between a person and TrueVoice Guide.
+Your task is to synthesize the conversation into an objective, compassionate support plan summary and evidence set for human responder triage and the person's personalized care plan.
+
+STRICT PRINCIPLES & GUARDRAILS:
+1. NEVER INVENT FACTS: Ground every summary sentence and indicator strictly in what the person actually said. Reference people (names), specific relationships, living arrangements, or events mentioned.
+2. NO CLINICAL DIAGNOSIS: Never diagnose PTSD, depression, trauma, or mental illness.
+3. CONCISE & FACTUAL:
+   - "what_we_heard": 2 to 4 concise sentences summarizing the situation, people involved, events, and stated preferences. Avoid exposing unnecessary graphic details.
+   - "how_you_are_doing": A warm, non-judgmental acknowledgment of the emotions the person expressed.
+4. EXTRACT CONCRETE CONTEXT:
+   - primary_concerns: list of main concerns stated by the person.
+   - emotional_indicators: list of emotions explicitly expressed (e.g. sadness, grief, betrayal, stress, anger, loneliness, confusion).
+   - safety_indicators: list of physical danger, coercion, abuse, or intimidation indicators (empty if none).
+   - immediate_needs: list of immediate support needs indicated by their words.
+   - uncertainties: information that remains unclear or unstated.
+
+OUTPUT FORMAT:
+You MUST reply with ONLY a single valid JSON object:
+{
+  "what_we_heard": "string",
+  "how_you_are_doing": "string",
+  "primary_concerns": ["string"],
+  "emotional_indicators": ["string"],
+  "safety_indicators": ["string"],
+  "immediate_needs": ["string"],
+  "uncertainties": ["string"]
+}
+"""
+
+def build_support_plan_prompt(
+    conversation_turns: list,
+    text_emotions: list = None,
+    stress_signals: list = None,
+    language: str = "en"
+) -> str:
+    """Build prompt for generating personalized post-chat support plan from entire conversation."""
+    lines = []
+    for turn in conversation_turns:
+        role = turn.get("role", "user")
+        speaker = "Person" if role in ("user", "victim") else "TrueVoice Guide"
+        text = turn.get("text") or turn.get("content") or ""
+        if text:
+            lines.append(f"{speaker}: {text}")
+    convo_str = "\n".join(lines) if lines else "[No conversation recorded]"
+
+    signals_summary = []
+    if text_emotions:
+        emotions_str = ", ".join([f"{e.get('top_emotion')}" for e in text_emotions if e.get("top_emotion")])
+        if emotions_str:
+            signals_summary.append(f"- Detected Text Emotions: {emotions_str}")
+    if stress_signals:
+        labels_str = ", ".join([f"{s.get('label')}" for s in stress_signals if s.get("label")])
+        if labels_str:
+            signals_summary.append(f"- Stress Indicators: {labels_str}")
+    signals_str = "\n".join(signals_summary) if signals_summary else "- [No separate acoustic or textual signal artifacts]"
+
+    return f"""Language: {language}
+
+FULL COMPLETED CONVERSATION:
+{convo_str}
+
+BACKGROUND SIGNALS:
+{signals_str}
+
+TASK:
+Analyze the complete conversation above. Synthesize what the person described into a concise "what_we_heard" summary (2-4 sentences) and an empathetic "how_you_are_doing" reflection. Extract primary concerns, emotional indicators, safety indicators, immediate needs, and uncertainties.
+Output ONLY the JSON object.
+"""
+

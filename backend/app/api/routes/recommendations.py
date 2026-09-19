@@ -12,6 +12,7 @@ from app.db.models.recommendation_review import RecommendationReview
 from app.db.models.conversation import Conversation
 from app.db.models.case import Case, CaseStatus
 from app.db.models.audit import AuditEvent
+from app.db.models.message import Message
 from app.services.llm.schemas import TraumaAssessment, MultimodalAssessmentInput
 from app.services.llm.service import gemma_service
 from app.services.session_service import session_service
@@ -21,6 +22,7 @@ from app.services.recommendation.schemas import (
     RecommendationReviewResponse,
     SupportRecommendation
 )
+from app.services.recommendation.support_plan_schemas import PersonalizedSupportPlan
 from app.services.recommendation.service import recommendation_service
 
 logger = logging.getLogger(__name__)
@@ -284,3 +286,117 @@ async def review_recommendation(
         status="reviewed",
         timestamp=now_iso
     )
+
+
+@router.post("/{session_id}/support-plan", response_model=PersonalizedSupportPlan)
+async def generate_support_plan_route(
+    session_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Generate a personalized post-chat support plan grounded in the full completed conversation context."""
+    # 1. Fetch conversation messages from database and in-memory state
+    messages_stmt = (
+        select(Message)
+        .where(Message.session_id == session_id)
+        .order_by(Message.timestamp.asc())
+    )
+    res = await db.execute(messages_stmt)
+    db_messages = res.scalars().all()
+
+    conversation_turns = []
+    for m in db_messages:
+        role = "user" if m.sender_type in ("VICTIM", "PEOPLE", "victim", "user") else "assistant"
+        conversation_turns.append({"role": role, "text": m.content})
+
+    # Also check in-memory session if DB has no messages yet
+    session = session_service.get_session(session_id)
+    if not conversation_turns and session and session.get("messages"):
+        for m in session["messages"]:
+            role = "user" if m.get("sender") == "user" else "assistant"
+            conversation_turns.append({"role": role, "text": m.get("text", "")})
+
+    text_emotions = []
+    stress_signals = []
+    if session:
+        for e in session_service.get_emotion_signals(session_id):
+            text_emotions.append({"top_emotion": getattr(e, "top_emotion", None)})
+        for s in session_service.get_stress_signals(session_id):
+            stress_signals.append({"label": getattr(s, "label", None)})
+
+    # 2. Check if a real responder is assigned to this case
+    has_human_assignment = False
+    human_assignment_details = None
+    conv_stmt = select(Conversation).where(Conversation.session_id == session_id)
+    conv_res = await db.execute(conv_stmt)
+    conv_obj = conv_res.scalars().first()
+    if conv_obj and conv_obj.case_id:
+        case_stmt = select(Case).where(Case.id == conv_obj.case_id)
+        case_res = await db.execute(case_stmt)
+        case_obj = case_res.scalars().first()
+        if case_obj and case_obj.assigned_responder_id:
+            has_human_assignment = True
+            human_assignment_details = {
+                "responder_id": case_obj.assigned_responder_id,
+                "status": "Assigned"
+            }
+
+    # 3. Generate personalized support plan
+    language = session.get("language", "en") if session else "en"
+    plan = recommendation_service.generate_support_plan(
+        session_id=session_id,
+        conversation_turns=conversation_turns,
+        text_emotions=text_emotions,
+        stress_signals=stress_signals,
+        has_human_assignment=has_human_assignment,
+        human_assignment_details=human_assignment_details,
+        language=language
+    )
+
+    # Persist any newly generated recommendations to PostgreSQL as well
+    try:
+        case_id = conv_obj.case_id if conv_obj else None
+        if not case_id:
+            case_ref = f"NHAA-AUTO-{uuid.uuid4().hex[:8].upper()}"
+            new_c = Case(external_case_reference=case_ref, status=CaseStatus.NEW)
+            db.add(new_c)
+            await db.flush()
+            case_id = new_c.id
+            if conv_obj:
+                conv_obj.case_id = case_id
+            else:
+                conv_obj = Conversation(case_id=case_id, session_id=session_id)
+                db.add(conv_obj)
+                await db.flush()
+
+        for rec in plan.recommendations:
+            db_rec = RecommendationModel(
+                id=rec.recommendation_id,
+                case_id=case_id,
+                session_id=session_id,
+                category=rec.category,
+                priority=rec.priority,
+                reason=rec.reason,
+                supporting_indicators=rec.supporting_indicators,
+                evidence_sources=rec.evidence_sources,
+                responder_action=rec.responder_action,
+                requires_human_review=rec.requires_human_review,
+                status=rec.status or "PENDING"
+            )
+            db.add(db_rec)
+        await db.commit()
+    except Exception as dbe:
+        logger.warning(f"Note: Could not persist support plan recommendations to DB: {dbe}")
+
+    return plan
+
+
+@router.get("/{session_id}/support-plan", response_model=PersonalizedSupportPlan)
+async def get_session_support_plan_route(
+    session_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieve existing personalized support plan, or generate on the fly if not cached."""
+    plan = recommendation_service.get_support_plan(session_id)
+    if plan:
+        return plan
+    return await generate_support_plan_route(session_id=session_id, db=db)

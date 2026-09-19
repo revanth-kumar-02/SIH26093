@@ -96,6 +96,7 @@ class ApiConfig {
   static String sessionTranscribeUrl(String sessionId) => '$baseUrl/api/v1/sessions/$sessionId/transcribe';
   static String sessionAnalyzeTextUrl(String sessionId) => '$baseUrl/api/v1/sessions/$sessionId/analyze/text';
   static String sessionAnalyzeAudioUrl(String sessionId) => '$baseUrl/api/v1/sessions/$sessionId/analyze/audio';
+  static String sessionSupportPlanUrl(String sessionId) => '$baseUrl/api/v1/sessions/$sessionId/support-plan';
 
   // --- Admin Endpoint paths (Phase 11) ---
   static String get adminDashboardUrl => '$baseUrl/api/v1/admin/dashboard';

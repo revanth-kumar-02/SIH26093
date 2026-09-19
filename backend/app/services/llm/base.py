@@ -43,3 +43,13 @@ class BaseLLMAssessmentAdapter(ABC):
         """
         pass
 
+    def analyze_completed_conversation(
+        self,
+        conversation_turns: List[dict],
+        text_emotions: Optional[List[dict]] = None,
+        stress_signals: Optional[List[dict]] = None,
+        language: str = "en"
+    ) -> dict:
+        """Analyze full conversation context to extract grounded summary and indicators."""
+        return {}
+
