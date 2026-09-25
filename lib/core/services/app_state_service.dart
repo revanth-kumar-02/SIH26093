@@ -37,7 +37,7 @@ class AppStateService extends ChangeNotifier {
   Future<void> initBackendSession() async {
     if (_sessionId != null && !_sessionId!.startsWith('local-')) return;
     try {
-      await ApiConfig.discoverBaseUrl();
+      await ApiConfig.discoverBaseUrl(force: true);
       final session = await _apiService.createSession(language: currentLanguageCode);
       _sessionId = session.sessionId;
       debugPrint('[AppStateService] Connected to backend session: $_sessionId at ${ApiConfig.baseUrl}');
@@ -162,7 +162,7 @@ class AppStateService extends ChangeNotifier {
       // Ensure active backend session
       if (_sessionId == null || _sessionId!.startsWith('local-')) {
         try {
-          await ApiConfig.discoverBaseUrl();
+          await ApiConfig.discoverBaseUrl(force: true);
           final session = await _apiService.createSession(language: currentLanguageCode);
           _sessionId = session.sessionId;
           debugPrint('[AppStateService] Connected to backend session: $_sessionId at ${ApiConfig.baseUrl}');

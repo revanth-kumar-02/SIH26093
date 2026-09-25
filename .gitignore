@@ -58,3 +58,21 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# AI Models and Large Binaries
+models/
+models/**
+*.gguf
+*.bin
+*.onnx
+*.safetensors
+aria2c.exe
+*.exe
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+backend/*.db
+responder.db
+

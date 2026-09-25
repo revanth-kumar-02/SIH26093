@@ -28,13 +28,36 @@ from app.api.routes import (
     responder,
     demo
 )
+import logging
+from contextlib import asynccontextmanager
+
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup validation: verify whether local Gemma runtime is reachable
+    try:
+        from app.services.llm.service import gemma_service
+        is_ready, details = gemma_service.check_health()
+        if is_ready:
+            logger.info(
+                f"[GEMMA] Local runtime reachable with provider={settings.GEMMA_PROVIDER} "
+                f"model={settings.GEMMA_MODEL} runtime={settings.GEMMA_RUNTIME}"
+            )
+        else:
+            logger.warning("[GEMMA ERROR] Local model unavailable")
+    except Exception as e:
+        logger.warning(f"[GEMMA ERROR] Local model unavailable: {e}")
+    yield
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
+
 
 # Custom exception handler: Formats { "error": { ... } } for responder/auth endpoints
 # while preserving { "detail": ... } for existing Phase 1-8 victim endpoints.

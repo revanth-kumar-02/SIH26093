@@ -1,612 +1,478 @@
-# AI-Assisted Stress & Trauma Vulnerability Assessment
+# SIH26093: AI-Assisted Real-Time Stress & Trauma Assessment Platform
 
-> **SIH26093** — AI-Based Real-Time Stress and Trauma Assessment Module for Victims/Complainants Accessing NHAA (14566) and Integrated Portal  
+> **SIH26093** — Real-Time Stress, Trauma, and Vulnerability Assessment Decision-Support System for Complainants and Responders Accessing the National Helpline Against Atrocities (NHAA 14566) and Integrated Emergency Portals.  
 > *Smart India Hackathon 2026 — Theme: Smart Automation | Category: Software*
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI%200.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![Python](https://img.shields.io/badge/Python-3.10%20--%203.14-3776AB?logo=python&logoColor=white)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.10%20--%203.12-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Flutter](https://img.shields.io/badge/Frontend-Flutter%203.13+-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
-[![Pytest](https://img.shields.io/badge/Backend%20Tests-140%2F140%20Passed-brightgreen?logo=pytest&logoColor=white)](backend/tests)
-[![Flutter Tests](https://img.shields.io/badge/Flutter%20Tests-34%2F34%20Passed-brightgreen?logo=flutter&logoColor=white)](test)
-[![Static Analysis](https://img.shields.io/badge/Flutter%20Analyze-0%20Issues-brightgreen)](lib)
-[![Architecture](https://img.shields.io/badge/Security-Strict%202--Role%20RBAC-blue)](docs/security.md)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL%2018%20%2B%20psycopg3-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Security](https://img.shields.io/badge/RBAC-Strict%202--Role%20(PEOPLE%20%2F%20ADMIN)-blue)](backend/app/core/config.py)
+[![Architecture](https://img.shields.io/badge/Architecture-Human--in--the--Loop%20Decision%20Support-success)](#15-human-in-the-loop-architecture)
 
 ---
 
-## 1. Executive Summary
-
-The **SIH26093** module is an AI-assisted trauma triage and decision-support platform engineered for the **National Helpline Against Atrocities (NHAA 14566)** and integrated emergency portals. The system provides real-time, explainable triage signals to human administrators handling distressed complainants across India without making autonomous legal, medical, or dispatch decisions.
-
-The architecture integrates Indian multilingual automatic speech recognition (IndicConformer), acoustic and textual emotion analysis, neural stress detection, multimodal LLM assessment evidence extraction (Gemma 3n E2B IT), a deterministic Stress Vulnerability Index (SVI v1.0), support recommendation workflows, an immutable append-only audit trail, and a desktop-first responsive Admin Web Dashboard.
+## 1. Project Title
+**SIH26093: Real-Time Multimodal Stress & Vulnerability Assessment Module**
 
 ---
 
-## 2. Problem Statement
-
-Complainants reaching out to emergency hotlines and victim support portals often communicate under extreme emotional distress, acute fear, or immediate danger across diverse Indian regional languages. Traditional helpline workflows face critical challenges:
-1. **Unsystematic Signal Capture**: Important behavioral cues—such as pitch instability, acoustic tremor, sustained emotional distress, and indirect threats—can be overlooked during rapid manual intake.
-2. **Multilingual Disparities**: India's linguistic diversity requires robust speech recognition across official regional languages, dialectal variations, and code-mixed inputs.
-3. **Opaque Automation Risks**: Generic "black-box" AI systems that output arbitrary risk scores or attempt autonomous dispatch create unacceptable legal, ethical, and clinical hazards.
-4. **Responder Cognitive Overload**: Human responders require structured, transparent, and corroborated evidence to quickly prioritize cases, verify safety flags, and coordinate appropriate multi-pathway support.
+## 2. Short Project Description
+SIH26093 is an AI-assisted trauma triage and decision-support module designed for public helpline operations, including the National Helpline Against Atrocities (NHAA 14566) and associated citizen distress intake portals. The system evaluates voice and textual inputs in real time to extract psychological distress signals, acoustic emotional cues, and structured clinical evidence. Rather than relying on opaque end-to-end score generation, the platform feeds extracted evidence into a transparent, deterministic mathematical risk engine (Custom SVI Engine v1.0) to compute a Stress Vulnerability Index (0–100) and actionable risk band, enabling human operators to triage cases rapidly, safely, and without autonomous high-stakes decision-making.
 
 ---
 
-## 3. The Proposed Solution
+## 3. Problem Being Addressed
+Citizens contacting distress hotlines and victim support services often experience extreme psychological stress, fear, and imminent threats. Helpline operators face systemic challenges:
 
-SIH26093 resolves these challenges through a **strictly bounded, explainable, human-in-the-loop architecture**:
+1. **Cognitive Overload Under High Call Volume**: Responders must simultaneously de-escalate callers, record case histories, and determine risk levels, leading to human fatigue and variable triage quality.
+2. **Subtle and Compound Signal Loss**: Distress signals—such as acoustic tremor, suppressed fear, latent panic, or indirect threat markers—can be difficult to systematically capture in fast-paced verbal or textual exchanges.
+3. **Black-Box Automation Risks**: Conventional end-to-end deep learning or generative scoring systems output arbitrary, unexplainable numbers and risk hallucinations, making them unsafe for clinical and legal triage.
+4. **Multilingual Context Preservation**: Complainants express distress naturally across regional languages and code-mixed inputs. Adding intermediary translation layers or disjoint transcription steps risks losing emotional nuance, sentiment fidelity, and dialectal meaning.
+5. **Lack of Accountable Audit Trails**: Many helpline software solutions lack structured, immutable records linking extracted distress indicators to human operator decisions.
+
+---
+
+## 4. Solution Overview
+SIH26093 solves these challenges through an explainable, bounded, **multimodal AI pipeline coupled with a deterministic risk scoring engine and human-in-the-loop governance**:
+
+- **Multimodal Understanding Without Intermediate Translation**: Preserves raw language context directly using unified multimodal model understanding alongside dedicated acoustic and textual signal analyzers.
+- **Dedicated Signal Extraction Models**: Runs speech emotion recognition directly on audio waveforms and granular text emotion/stress classifiers on textual inputs.
+- **Structured Evidence Extraction**: Uses `google/gemma-3n-E2B-it` strictly to interpret context, extract verifiable indicators with verbatim evidence snippets, identify uncertainties, and produce empathetic conversational support.
+- **Deterministic SVI Risk Engine v1.0**: Employs an open, inspectable mathematical formula to compute a 0–100 vulnerability score, factor contributions, and key risk drivers.
+- **Non-Autonomous Decision Support**: Strictly forbids autonomous police dispatch, legal referrals, or psychiatric labeling. Human responders retain full oversight to accept, adjust, or override recommended support pathways.
+
+---
+
+## 5. Key Capabilities
+
+| Capability | Technical Realization | Operational Impact |
+| :--- | :--- | :--- |
+| **Voice & Text Intake** | Native Flutter audio recording (16 kHz WAV) & multi-turn textual interface | Low-friction citizen reporting on Mobile (Android) and Web |
+| **Direct Acoustic Emotion Analysis** | 7-class transformer-based speech emotion classification (`wav2vec2`) | Captures non-verbal vocal distress, tremor, panic, and agitation |
+| **Granular Text Affect Detection** | 28-category textual emotion extraction (`roberta-base-go_emotions`) | Identifies nuanced feelings (grief, remorse, fear, anger, relief) |
+| **Neural Stress Detection** | Domain-adapted MentalBERT classifier (`mentalbert_dreaddit_best`) | Delivers calibrated probability scores for acute psychological stress |
+| **Contextual Evidence Synthesis** | Multimodal LLM reasoning (`google/gemma-3n-E2B-it`) | Extracts structured trauma indicators, safety concerns, and gaps |
+| **Deterministic Risk Scoring** | Custom SVI Engine v1.0 with anti-double-counting and corroboration logic | Reproducible 0–100 index with clear point attribution |
+| **Support Pathway Formulation** | Rule-driven recommendation generator across 7 civic/social categories | Pre-populates counseling, medical, legal, and shelter aid options |
+| **Human Review Workflow** | Two-tier review console (Accept / Modify / Reject recommendations) | Ensures zero unauthorized automated dispatch or interventions |
+| **Desktop-First Admin Console** | Responsive Web management dashboard with metrics, filters, and case viewer | Real-time case prioritization for helpline supervisors |
+| **Strict 2-Role Security** | RBAC enforced via JWT claims & database constraints (`PEOPLE` vs `ADMIN`) | Strong data isolation and complainant privacy protection |
+
+---
+
+## 6. System Architecture
+
+```mermaid
+flowchart TB
+    subgraph Client_Tier [Client Application Layer (Flutter)]
+        User[Victim / Complainant] -->|Voice Stream / Text Input| FlutterClient[Flutter App: Android & Web]
+        Responder[Helpline Admin / Responder] -->|Review & Action Console| AdminWeb[Admin Web Dashboard]
+    end
+
+    subgraph Gateway_Tier [Application & Security Gateway (FastAPI)]
+        FlutterClient -->|REST API / Multipart 16kHz WAV| APIGateway[FastAPI Gateway /api/v1]
+        AdminWeb -->|Authenticated JWT Requests| APIGateway
+        APIGateway --> AuthGuard[Strict 2-Role RBAC: PEOPLE | ADMIN]
+    end
+
+    subgraph AI_Pipeline [AI / ML Signal Extraction Layer]
+        APIGateway -->|Audio Waveform| SpeechEmotionModel[Speech Emotion: Wav2Vec2]
+        APIGateway -->|Text Content| TextEmotionModel[Text Emotion: RoBERTa]
+        APIGateway -->|Text Content| StressModel[Stress Detection: MentalBERT]
+        APIGateway -->|Multimodal Context| CoreLLM[Core LLM: Gemma 3n E2B IT]
+    end
+
+    subgraph Synthesis_Tier [Evidence Synthesis & Risk Computation]
+        CoreLLM -->|Structured Indicators & Evidence| EvidenceBundle[Structured Evidence Bundle]
+        SpeechEmotionModel -->|Acoustic Signals| Fusion[Signal & Evidence Fusion]
+        TextEmotionModel -->|Text Emotion Probabilities| Fusion
+        StressModel -->|Stress Score| Fusion
+        EvidenceBundle --> Fusion
+        Fusion --> SVI_Engine[Custom SVI Engine v1.0\nDeterministic Non-LLM Algorithm]
+        SVI_Engine --> RiskOutput[0-100 SVI Score & Risk Band\nLOW / MODERATE / HIGH / CRITICAL]
+    end
+
+    subgraph Decision_Tier [Human-in-the-Loop Decision Support]
+        RiskOutput --> RecEngine[Support Pathway Recommendation Engine]
+        RecEngine --> AdminWeb
+        AdminWeb -->|Human Decision: Accept / Modify / Reject| CaseResolution[Verified Action Plan]
+    end
+
+    subgraph Storage_Tier [Persistence Layer]
+        AuthGuard --> DB[(PostgreSQL 18\nCases, Sessions, Recommendations, Audit Trail)]
+        CaseResolution --> DB
+    end
+```
+
+---
+
+## 7. AI/ML Model Stack
+
+The locked AI stack operates without external cloud API dependencies, ensuring reliable local/private deployment:
+
+| Component | Model Identifier | Role | Input Modality |
+| :--- | :--- | :--- | :--- |
+| **Speech Emotion Recognition** | `Dpngtm/wav2vec2-emotion-recognition` | Extract acoustic emotional signals directly from speech waveforms | Raw Audio (16 kHz WAV) |
+| **Text Emotion Recognition** | `SamLowe/roberta-base-go_emotions` | Detect granular affective states from complainant textual input | Text Tokens |
+| **Stress Detection** | `jtvallente/mentalbert_dreaddit_best` | Detect acute psychological stress signals | Text Tokens |
+| **Core Multimodal LLM** | `google/gemma-3n-E2B-it` | Conversation understanding, multimodal context interpretation, structured evidence extraction, and empathetic response generation | Text & Multimodal Prompts |
+| **Risk Engine** | `Custom SVI Engine v1.0` | Deterministic mathematical scoring, risk tiering, and explainable indicator attribution | Fused Signals & Evidence Objects |
+
+> [!IMPORTANT]
+> **No Separate ASR or Translation Models**: The architecture intentionally excludes separate speech-to-text (ASR), translation, Tamil-specific translation, or external reasoning LLMs. This preserves native linguistic context and avoids propagation of translation or transcription errors into downstream safety scoring.
+
+---
+
+## 8. Model Responsibilities
+
+### 1. Speech Emotion Recognition (`Dpngtm/wav2vec2-emotion-recognition`)
+- Processes raw 16 kHz audio waveforms directly via transformer temporal convolutional networks.
+- Classifies acoustic features into 7 discrete emotional states: *anger, disgust, fear, joy, neutral, sadness, surprise*.
+- Detects vocal prosody, pitch instability, and tremor independently of spoken lexicon.
+
+### 2. Text Emotion Recognition (`SamLowe/roberta-base-go_emotions`)
+- Performs multi-label affective classification across 28 GoEmotions categories (e.g., *nervousness, grief, fear, remorse, relief*).
+- Supplies probability distributions that corroborate or contrast with speech emotion outputs.
+
+### 3. Stress Detection (`jtvallente/mentalbert_dreaddit_best`)
+- Leverages domain-adapted MentalBERT trained on distress and trauma discourse (Dreaddit benchmark).
+- Generates a calibrated stress score ($0.0 \to 1.0$) indicating urgency and psychological overwhelm.
+
+### 4. Core Multimodal LLM (`google/gemma-3n-E2B-it`)
+- **Conversational Understanding**: Engages the complainant with context-aware, empathetic guidance.
+- **Multimodal Context Interpretation**: Interprets compound inputs in their original context.
+- **Structured Evidence Extraction**: Outputs typed JSON objects adhering to strict Pydantic schemas (indicators, confidence levels, direct quotes, and uncertainties).
+- **Zero Numerical Risk Scoring**: Does **not** compute numerical risk scores, preventing hallucinated triage ratings.
+
+---
+
+## 9. SVI Risk Engine (Custom SVI Engine v1.0)
+
+The **Stress Vulnerability Index (SVI)** is a **deterministic, explainable mathematical algorithm**—not an AI/black-box model.
+
+```
++-------------------------------------------------------------------------+
+|                       Custom SVI Engine v1.0                            |
+|                                                                         |
+|   SVI = min( 100.0,  Sum(w_i * p_i * c_i * s_i) * Corroboration )       |
+|                                                                         |
+|   w_i = Factor Base Weight       p_i = Presence Multiplier [0.0 - 1.0]  |
+|   c_i = Signal Confidence        s_i = Evidence Strength [0.5 - 1.0]    |
+|   Corroboration Bonus = 1.15x (multi-source confirmation)               |
++-------------------------------------------------------------------------+
+```
+
+### Core Characteristics:
+1. **Deterministic & Reproducible**: Given identical input indicators and confidence values, the engine always produces the exact same score.
+2. **Confidence-Aware**: Scales each vulnerability factor by the model's extraction confidence ($c_i$) and empirical presence state ($p_i$).
+3. **Anti-Double Counting & Deduplication**: Deduplicates overlapping text quotes within the same factor group so repetitive phrasing does not artificially inflate risk.
+4. **Cross-Modal Corroboration**: Applies a bounded multiplier ($1.15\times$) only when evidence is independently confirmed across distinct modalities (e.g., speech acoustics + text classification).
+5. **Full Explainability**: Deconstructs the final score into exact point contributions for top driving factors.
+
+### Scoring Bands & Operational Protocols:
+| Risk Tier | SVI Score Range | Operational Definition | Protocol |
+| :---: | :---: | :--- | :--- |
+| **LOW** | `0.0 – 29.9` | Routine grievance or informational inquiry | Standard informational guidance & resources |
+| **MODERATE** | `30.0 – 59.9` | Noticeable emotional strain, economic pressure, or relational friction | Counselor callback & community resource navigation |
+| **HIGH** | `60.0 – 84.9` | Substantial coercion, threats, or severe distress | Priority responder review; legal & psychological aid |
+| **CRITICAL** | `85.0 – 100.0` | Imminent physical danger, active violence, or acute crisis | Immediate live responder escalation & safety verification |
+
+---
+
+## 10. End-to-End AI Flow
 
 ```mermaid
 flowchart TD
-    A[Victim / Complainant] -->|Voice / Text Audio| B[Flutter Client App]
-    B -->|Multipart 16 kHz Audio / JSON| C[FastAPI Async Gateway]
+    A[Citizen Input: Voice / Text] --> B{Input Modality}
     
-    subgraph Signal_Extraction [Multimodal Signal Layer]
-        C --> D[IndicConformer ASR
-600M Multi]
-        D -->|Transcript| E[Text Emotion RoBERTa
-28 GoEmotions Classes]
-        D -->|Transcript| F[Neural Stress Classifier
-Dreaddit MentalBERT]
-        C -->|Audio Bytes| G[Speech Emotion Wav2Vec2
-7 Acoustic Classes]
-    end
+    B -->|Audio Stream| C1[Speech Emotion Model\nDpngtm/wav2vec2-emotion-recognition]
+    B -->|Text Stream| C2[Text Emotion Model\nSamLowe/roberta-base-go_emotions]
+    B -->|Text Stream| C3[Stress Detection Model\njtvallente/mentalbert_dreaddit_best]
+    B -->|Multimodal Input| C4[Core Multimodal LLM\ngoogle/gemma-3n-E2B-it]
     
-    E & F & G --> H[Multimodal Signal Aggregator
-Cross-Modal Normalization]
+    C1 -->|Acoustic Emotion Probabilities| D[Signal & Evidence Fusion Layer]
+    C2 -->|Affective Class Distributions| D
+    C3 -->|Calibrated Stress Score| D
+    C4 -->|Structured Indicators, Quotes & Uncertainties| D
     
-    subgraph Evidence_Reasoning [Evidence Synthesis Layer]
-        H --> I[Gemma 3n E2B IT
-Multimodal Assessment Model]
-        I -->|Structured JSON Payload| J[Trauma & Vulnerability Evidence
-Indicators, Observations, Uncertainties]
-    end
+    D --> E[Custom SVI Engine v1.0\nDeterministic Non-LLM Algorithm]
     
-    subgraph Triage_Engine [Deterministic SVI Engine v1.0]
-        J & H --> K[Deterministic SVI Formula
-Non-LLM Mathematical Scoring]
-        K --> L[SVI Score: 0-100
-Risk Tier: LOW / MOD / HIGH / CRITICAL]
-    end
+    E --> F[Vulnerability Score 0-100]
+    E --> G[Assigned Risk Band: LOW / MOD / HIGH / CRITICAL]
+    E --> H[Explainable Indicators & Factor Contributions]
     
-    subgraph Decision_Support [Support Pathways & Human Review]
-        L & J --> M[Support Recommendation Engine
-7 Operational Categories]
-        M --> N[Admin Web Dashboard
-Desktop-First Operations Portal]
-        N -->|Human Decision| O{Admin Review
-Accept / Modify / Reject}
-    end
+    F & G & H --> I[Support Pathway Recommendations\nCounseling, Legal, Medical, Shelter, Safety]
     
-    O -->|Append-Only Record| P[(PostgreSQL Database
-Audit Trail & Case Storage)]
+    I --> J[Human-in-the-Loop Review Console\nHelpline Operator / Admin Dashboard]
+    
+    J -->|Accept / Modify / Reject| K[Logged Action & Verified Response Plan]
 ```
 
 ---
 
-## 4. Key Implemented Features
+## 11. Technology Stack
 
-- **Multilingual Voice Intake**: Native Flutter audio recording with 16 kHz WAV encoding, real-time waveform visualization, and IndicConformer transcription.
-- **Acoustic Emotion Recognition**: Wav2Vec2 transformer-based analysis classifying speech into 7 primary acoustic emotion states.
-- **Text Emotion Recognition**: RoBERTa fine-tuned on GoEmotions extracting 28 granular affective categories.
-- **Neural Stress Classifier**: MentalBERT architecture fine-tuned on Dreaddit providing calibrated stress probability.
-- **Multimodal LLM Evidence Reasoning**: Gemma 3n E2B IT structured extraction of clinical indicators, safety concerns, and uncertainties (without generating arbitrary scores).
-- **Deterministic SVI Engine (v1.0)**: Transparent, reproducible mathematical formula computing a 0–100 vulnerability index with factor contributions and key drivers.
-- **Support Pathway Recommendations**: Structured recommendations across 7 support categories with priority, evidence sources, and suggested responder actions.
-- **Human-in-the-Loop Decision Console**: Full human review workflow (Accept, Modify priority/action/note, Reject) without overwriting original AI suggestions.
-- **Desktop-First Admin Web Dashboard**: Operational console featuring summary metric cards, risk distribution visibility, "Requires Attention" safety triage, case management tables, and full case detail inspectors.
-- **Strict Two-Role RBAC**: Exactly two roles (`PEOPLE` and `ADMIN`) enforced at the database, JWT claim, and API gateway levels.
-- **Append-Only Audit Trail**: Immutable logging of all authentication events, case status transitions, and recommendation reviews without storing raw victim conversations in audit logs.
-- **Synthetic SIH Demonstration Suite**: Pre-seeded with 5 comprehensive demonstration cases (Cases A–E) illustrating all risk categories and language interactions.
+### Frontend
+- **Framework**: Flutter 3.13+ (Dart SDK `^3.13.3`)
+- **Supported Platforms**: Responsive Web (Desktop-first Admin Console) & Android Mobile Client
+- **State & Routing**: `go_router` (`^15.1.2`), `shared_preferences` (`^2.5.5`)
+- **Audio Capture**: `record` (`^7.1.1`) configured for standard 16 kHz PCM WAV capture
 
----
+### Backend
+- **Framework**: Python 3.10–3.12 with FastAPI (`>=0.115.0`) & Uvicorn (`>=0.30.0`)
+- **Data Validation**: Pydantic v2 (`>=2.8.0`)
+- **Async Runtime**: AnyIO / asyncio event loop policy with Windows compatibility layer
+- **HTTP Client**: HTTPX (`>=0.27.0`)
 
-## 5. Locked AI Model Pipeline
+### Database & Authentication
+- **Primary Database**: PostgreSQL 18 with `psycopg 3` (`postgresql+psycopg://...`)
+- **Local Fallback**: SQLite compatibility mode (`responder.db`) for rapid local development
+- **Migrations**: Alembic (`>=1.13.0`)
+- **Authentication**: JWT (HS256) with strict 2-role RBAC (`PEOPLE` and `ADMIN`) + Supabase Auth client integration
 
-The machine learning pipeline uses dedicated, locked models evaluated for the Indian public-safety domain. **No external cloud APIs or substitute models (such as Faster-Whisper) are used.**
-
-| Pipeline Component | Locked Model / Architecture | Parameter Size | Target Task & Domain |
-| :--- | :--- | :--- | :--- |
-| **Speech-to-Text (ASR)** | `ai4bharat/indic-conformer-600m-multilingual` | 600M | Indian multilingual speech recognition (22 languages; CTC & RNNT decoders) |
-| **Speech Emotion Recognition** | `Dpngtm/wav2vec2-emotion-recognition` | 317M | Acoustic prosody & emotion extraction (7 classes: anger, disgust, fear, joy, neutral, sadness, surprise) |
-| **Text Emotion Recognition** | `SamLowe/roberta-base-go_emotions` | 125M | Granular textual affective classification (28 GoEmotions categories) |
-| **Stress Detection** | `jtvallente/mentalbert_dreaddit_best` | 110M | Domain-adapted transformer for psychological stress indicators |
-| **Multimodal Assessment** | `google/gemma-3n-E2B-it` | 3B | Structured trauma evidence synthesis, indicator extraction, and uncertainty identification |
-| **Triage Index (SVI)** | `Deterministic Custom Engine v1.0` | N/A | Deterministic, explainable mathematical scoring (0–100 score & risk band assignment) |
+### AI / ML Runtime & Inference
+- **Inference Backends**: PyTorch (`>=2.0.0`), Torchaudio (`>=2.0.0`), Hugging Face Transformers (`>=4.40.0`), ONNX Runtime (`>=1.20.0`)
+- **LLM Runtime**: Local Gemma inference runtime via Ollama (`gemma3:12b` / `google/gemma-3n-E2B-it`) with strict fallback guards
 
 ---
 
-## 6. Multimodal Assessment Architecture
+## 12. Data Pipeline
 
-The system enforces strict architectural boundaries between signal extraction, evidence synthesis, and risk score calculation:
-
-1. **Signal Aggregation**: Acoustic emotion distributions, text emotion probabilities, stress confidence, and IndicConformer transcripts are aligned by timestamp into an immutable `MultimodalSessionState`.
-2. **Structured LLM Evidence Synthesis**: `google/gemma-3n-E2B-it` evaluates the aligned session state against a structured clinical prompt. It outputs a validated Pydantic schema containing:
-   - `clinical_summary`: Concise summary of distress context.
-   - `indicators`: List of extracted indicators with category, confidence rating, and evidence quotes.
-   - `uncertainties`: Documented gaps in information (e.g., unknown current location, ambiguous safety status).
-   - `safety_concerns`: Explicit immediate danger flags.
-3. **Strict Separation of Concerns**: **Gemma does NOT directly calculate the SVI score.** The LLM functions exclusively as a structured evidence extractor; score computation is handed off to the deterministic mathematical engine.
-
----
-
-## 7. Trauma & Vulnerability Indicators
-
-The module extracts specific, actionable indicators for responder consideration:
-
-- **Emotional Distress & Despair**: Severe acute anxiety, crying, emotional breakdown, hopelessness.
-- **Fear & Intimidation**: Coercive control, physical threats, harassment, stalking.
-- **Domestic & Relational Abuse**: Spousal violence, in-law harassment, child safety concerns.
-- **Shelter & Economic Insecurity**: Imminent eviction, homelessness risk, financial abandonment.
-- **Immediate Physical Danger**: Active intruder, ongoing assault, life-threatening crisis.
-- **Crisis & Self-Harm Indicators**: Expressions of self-harm or acute suicidality requiring immediate human escalation.
-- **Communication Difficulty**: Language barriers, dysfluency, or cognitive overwhelm (guarded so communication difficulty alone does not escalate trauma scores).
-
-> [!NOTE]
-> All extracted indicators are advisory decision-support signals. The system explicitly does **not** make psychological or psychiatric diagnoses.
-
----
-
-## 8. Deterministic Stress Vulnerability Index (SVI v1.0)
-
-The **Stress Vulnerability Index (SVI)** is a reproducible mathematical metric ranging from **0.0 to 100.0**.
-
-### Formula Architecture
-$$	ext{SVI} = \min\left(100.0, \, \Big(\sum w_i \cdot c_i \cdot s_i\Big) + \Delta_{	ext{corroboration}} - \Delta_{	ext{uncertainty}} - \Delta_{	ext{redundancy}}
-ight)$$
-
-- **Weighted Factor Contributions ($w_i \cdot c_i \cdot s_i$)**: Factors include threat severity, domestic abuse, shelter vulnerability, emotional distress, and acoustic stress.
-- **Cross-Modal Corroboration ($\Delta_{	ext{corroboration}}$)**: Additive bonus when acoustic emotion matches textual distress markers.
-- **Uncertainty Penalty ($\Delta_{	ext{uncertainty}}$)**: Discount applied when critical information is missing, preventing overconfident escalation.
-- **Redundancy Discount ($\Delta_{	ext{redundancy}}$)**: Anti-double-counting filter that discounts repeated mentions of identical evidence.
-
-### Operational Risk Bands
-| Risk Category | Score Range | Operational Definition | Protocol |
-| :---: | :---: | :--- | :--- |
-| **LOW** | 0.0 – 29.9 | Baseline procedural inquiries or routine grievances | Standard information dissemination |
-| **MODERATE** | 30.0 – 59.9 | Elevated emotional friction, social isolation, relocation stress | Community navigation & counselor callback |
-| **HIGH** | 60.0 – 79.9 | Severe coercion, harassment, threatened eviction with minors | Priority human review & multi-pathway legal/social aid |
-| **CRITICAL** | 80.0 – 100.0 | Active physical danger, forced entry, life safety threats | Immediate emergency desk escalation for human action |
-
-> [!WARNING]
-> Risk bands are engineering triage thresholds configured for operational prioritizing during hackathon evaluation. They do not constitute clinical validation.
-
----
-
-## 9. Support Recommendation Engine
-
-The engine converts corroborated evidence and SVI tiers into appropriate support pathways:
-
-1. **Psychological First Aid / Counseling Support**: Tele-counseling with regional-language trauma specialists.
-2. **Legal Aid**: Panel advocate referral through District Legal Services Authorities (DLSA).
-3. **Medical Assistance**: Coordination with Sakhi One Stop Centers (OSC) or district health facilities.
-4. **Safety Assistance**: Escort coordination and safety planning.
-5. **Police Assistance (Human Escalation Only)**: Advisory referral to emergency desks for verified threats.
-6. **Emergency Shelter Accommodation**: Swadhar Greh or short-stay shelter placement coordination.
-7. **Social Welfare Support**: Documentation and victim compensation scheme guidance.
-
-### Non-Autonomous Guardrail
-The system **NEVER** autonomously:
-- Contacts the police or local law enforcement
-- Dispatches PCR emergency vehicles
-- Contacts victim family members or employers
-- Issues legally binding directives or medical prescriptions
-
-All recommendations are advisory. Every action requires human review and confirmation.
-
----
-
-## 10. Human-in-the-Loop Governance
-
-```
-      AI Signal Extraction ──► Gemma Assessment ──► Deterministic SVI ──► Recommendations
-                                                                                │
-                                                                                ▼
-      Audit Trail  ◄─── PostgreSQL ◄─── Human Decision ◄─── Admin Web Console Review
-                                      (Accept / Modify / Reject)
-```
-
-- **ACCEPT**: Approves the recommended pathway and moves the case to `AWAITING_RESPONDER_ACTION`.
-- **MODIFY**: Allows the administrator to adjust the priority tier, edit the operational action, and record an explanatory note. The original AI recommendation remains preserved.
-- **REJECT**: Records the rejection justification and archives the recommendation.
-
----
-
-## 11. Role-Based Access Control (RBAC)
-
-The system enforces a **strict two-role model**:
-
-```
-                              ┌───────────────────────────┐
-                              │     AUTHENTICATED USER    │
-                              └─────────────┬─────────────┘
-                                            │
-                        ┌───────────────────┴───────────────────┐
-                        ▼                                       ▼
-             Role: "PEOPLE"                          Role: "ADMIN"
-     ┌───────────────────────────────┐       ┌───────────────────────────────┐
-     │ - Victim intake flow          │       │ - Full operations dashboard   │
-     │ - Own session interactions    │       │ - System-wide case queue      │
-     │ - Audio voice transcription   │       │ - Case detail & SVI inspector │
-     │ - Multi-turn chat guidance    │       │ - Recommendation review       │
-     │                               │       │ - System-wide audit logs      │
-     │ ❌ Denied admin endpoints     │       │ - Lifecycle status update     │
-     │ ❌ Denied other users' cases  │       │                               │
-     │ ❌ Denied audit trail access  │       │                               │
-     └───────────────────────────────┘       └───────────────────────────────┘
-```
-
-Legacy roles (`RESPONDER`, `SUPERVISOR`, `MODERATOR`, `STAFF`) are completely removed. Calling any `/api/v1/admin/*` or `/api/v1/responder/*` route with a `PEOPLE` role token immediately returns **HTTP 403 Forbidden** (`INSUFFICIENT_PERMISSIONS`).
-
----
-
-## 12. Technology Stack
-
-| Layer | Technologies & Frameworks | Version / Specification |
-| :--- | :--- | :--- |
-| **Frontend Web & Mobile** | Flutter SDK, Dart, Material 3 Design | Flutter 3.13+, Dart 3.1+, GoRouter 15.1 |
-| **Design System** | Sanctuary Design System (Sage Green, Warm Ivory, Soft Olive) | Tailored HSL Palette (`#335941`, `#F8FAF6`) |
-| **Backend API** | FastAPI, Python, Uvicorn, AnyIO | FastAPI 0.115+, Python 3.10–3.14 |
-| **Database & ORM** | PostgreSQL with `asyncpg` (SQLite `aiosqlite` fallback) | SQLAlchemy 2.0 Async, Alembic migrations |
-| **Authentication & Security** | JWT (HS256), Passlib (Bcrypt), Python-JOSE | SHA-256 / Bcrypt salted hashing |
-| **AI Inference** | PyTorch, Torchaudio, HuggingFace Transformers, ONNX | PyTorch 2.0+, Transformers 4.40+ |
-| **Testing & Quality** | Pytest, AnyIO test runner, Flutter Test framework | Pytest 8.0+, Flutter Analyzer |
-
----
-
-## 13. System Architecture Diagram
+The project follows a secure, privacy-first data pipeline designed for consented citizen data:
 
 ```mermaid
-graph TD
-    subgraph Client_Tier [Client Applications]
-        V_APP[Flutter Mobile App
-Android APK]
-        A_WEB[Flutter Admin Console
-Desktop Web]
-    end
-
-    subgraph API_Gateway [FastAPI Gateway & Auth]
-        AUTH[Auth Router
-JWT Bearer / Bcrypt]
-        RBAC[RBAC Guard
-ADMIN vs PEOPLE]
-        SESS[Session Manager
-State Machine]
-    end
-
-    subgraph Service_Tier [Backend Service Layer]
-        ASR_SVC[IndicConformer ASR
-Multilingual Speech]
-        EMO_SVC[Emotion Services
-Wav2Vec2 + RoBERTa]
-        STR_SVC[Stress Classifier
-Dreaddit MentalBERT]
-        GEM_SVC[Gemma 3n Service
-Evidence Extraction]
-        SVI_SVC[Deterministic SVI
-Mathematical Scoring]
-        REC_SVC[Recommendation Service
-Pathway Generation]
-    end
-
-    subgraph Data_Tier [Persistence Layer]
-        PG[(PostgreSQL Database
-Asyncpg Engine)]
-        AUDIT[(Append-Only Audit Log
-Non-Repudiation)]
-    end
-
-    V_APP -->|Voice / Text| SESS
-    A_WEB -->|Bearer JWT| RBAC
-    AUTH --> RBAC
-    RBAC --> Service_Tier
-    SESS --> ASR_SVC & EMO_SVC & STR_SVC
-    ASR_SVC & EMO_SVC & STR_SVC --> GEM_SVC
-    GEM_SVC --> SVI_SVC --> REC_SVC
-    REC_SVC --> PG
-    RBAC --> AUDIT
+flowchart LR
+    A[Student / Consented Dataset] --> B[Raw Data Collection\nAnonymized Audio & Text]
+    B --> C[Secure Server Upload\nEncrypted In-Flight & Rest]
+    C --> D[Validation &\nQuality Filtering]
+    D --> E[Expert Annotation\nDistress & Safety Labels]
+    E --> F[Dataset Versioning\nImmutable Snapshots]
+    F --> G[Model Evaluation &\nFine-Tuning]
+    G --> H[Held-Out Evaluation\nFairness & Bias Checks]
+    H --> I[Approved Adapters\nVersion Tagged]
+    I --> J[Application Integration\nFastAPI Serving]
 ```
+
+### Pipeline Stages:
+1. **Consented Collection**: Data collected strictly with explicit consent and immediate PII scrubbing.
+2. **Quality Filtering**: Automatic acoustic verification (clipping detection, SNR thresholding, sample rate validation).
+3. **Clinical / Trauma Annotation**: Multi-annotator labeling for emotional valence, stress presence, and crisis indicators.
+4. **Versioning & Traceability**: Versioned dataset partitions (Train / Val / Held-Out Test) preventing benchmark leakage.
+5. **Controlled Integration**: Adapter checkpoints must pass automated validation benchmarks before promotion to production.
 
 ---
 
-## 14. Repository Project Structure
+## 13. Model Evaluation Strategy
+
+### Voice Data Evaluation
+Recorded voice inputs are evaluated across technical and operational dimensions:
+- **Speech Emotion Performance**: Class-wise macro-F1 score across high-arousal (anger, fear) and low-arousal (sadness, neutral) states.
+- **Audio Quality & Robustness**: Performance degradation testing under varying signal-to-noise ratios (SNR), background street noise, and low-cost microphone distortion.
+- **Inference Latency**: Round-trip processing benchmarks targeting $<400\text{ ms}$ for audio feature extraction.
+- **Model Confidence Calibration**: Expected Calibration Error (ECE) to prevent overconfident acoustic predictions.
+
+### Text & Stress Evaluation
+- **Text Emotion (GoEmotions)**: Multi-label ROC-AUC, Precision, and Recall across 28 affective dimensions.
+- **Stress Detection (MentalBERT)**: Binary classification F1-score on held-out Dreaddit test splits, cross-validated against domain distress benchmarks.
+- **LLM Structured Extraction**: Schema conformance validation (100% valid Pydantic JSON compliance), hallucination rate monitoring, and grounding verification against input quotes.
+
+---
+
+## 14. Training & Fine-Tuning Strategy
 
 ```
-d:/sih26093/
-├── backend/
-│   ├── alembic/                      # Database migrations (Alembic)
-│   │   ├── versions/                 # Version migration scripts
-│   │   └── env.py                    # Alembic async configuration
++--------------------------------------------------------------------------+
+| Status: Baseline Foundation Models Locked; Domain Fine-Tuning Planned   |
++--------------------------------------------------------------------------+
+```
+
+### Current Status vs. Planned Work:
+- **Current Baseline (Implemented)**: The platform executes zero-shot and transfer-learning inference using the locked foundation checkpoints (`wav2vec2-emotion-recognition`, `roberta-base-go_emotions`, `mentalbert_dreaddit_best`, and `gemma-3n-E2B-it`).
+- **Planned Fine-Tuning Approach (PEFT / QLoRA)**:
+  - **Parameter-Efficient Fine-Tuning (PEFT)**: Employing **QLoRA** (Quantized Low-Rank Adaptation) on `google/gemma-3n-E2B-it` to adapt the core LLM to Indian emergency helpline discourse without retraining base weights.
+  - **Supervised Fine-Tuning (SFT)**: Target training objective optimizing instruction following for structured evidence extraction schemas and empathy-calibrated safety responses.
+  - **Domain Adapter Weights**: Low-rank adapter matrices ($r=16$, $\alpha=32$) trained on verified, consented bilingual distress dialogs.
+
+---
+
+## 15. Human-in-the-Loop Architecture
+
+The platform operates on a strict **Decision-Support Paradigm**. The AI pipeline produces observations; human operators make decisions.
+
+```mermaid
+flowchart TD
+    AI[AI Pipeline & SVI Engine] -->|Advisory Risk Score & Indicators| Recs[Generated Support Recommendations]
+    Recs --> Dashboard[Admin Web Review Console]
+    
+    subgraph Human_Operator_Actions [Human Responder Oversight]
+        Dashboard --> Action1[Accept Recommendation]
+        Dashboard --> Action2[Modify Priority / Action Notes]
+        Dashboard --> Action3[Reject / Override with Justification]
+    end
+    
+    Action1 & Action2 & Action3 --> AuditLog[Immutable Audit Trail Record]
+    AuditLog --> FinalDispatch[Human-Authorized Assistance Pathway]
+```
+
+### Strict Non-Autonomous Boundaries:
+- ❌ **No Automated Police Dispatch**: The system will never trigger police, legal, or emergency vehicle dispatch autonomously.
+- ❌ **No Autonomous Psychiatric / Medical Diagnosis**: Indicators are labeled as operational decision-support observations only.
+- ❌ **No Automated Contacting of Relatives or Third Parties**: Complainant autonomy and confidentiality remain preserved.
+- ✅ **Mandatory Human Verification**: All emergency safety flags require explicit confirmation by an authenticated administrator.
+
+---
+
+## 16. Project Structure
+
+```
+sih26093/
+├── backend/                        # FastAPI Backend Application
+│   ├── alembic/                    # Database schema migration versions
 │   ├── app/
-│   │   ├── api/routes/               # FastAPI route definitions
-│   │   │   ├── admin.py              # Dedicated Phase 11 Admin endpoints
-│   │   │   ├── auth.py               # Authentication (login, refresh, me)
-│   │   │   ├── demo.py               # Demonstration endpoints (Cases A-E)
-│   │   │   ├── emotion.py            # Speech & text emotion routes
-│   │   │   ├── multimodal.py         # Signal layer aggregation
-│   │   │   ├── recommendations.py    # Support pathway generation
-│   │   │   ├── responder.py          # Legacy/operational responder endpoints
-│   │   │   ├── sessions.py           # Victim session lifecycle
-│   │   │   ├── stress.py             # Neural stress detection routes
-│   │   │   ├── svi.py                # Deterministic SVI routes
-│   │   │   └── transcription.py      # IndicConformer speech-to-text
-│   │   ├── core/                     # Application core & config
-│   │   │   ├── auth.py               # Password hashing & RBAC dependencies
-│   │   │   └── config.py             # Pydantic Settings & environment vars
-│   │   ├── db/                       # Database engine & models
-│   │   │   ├── models/               # SQLAlchemy ORM entities
-│   │   │   ├── base.py               # Declarative base & UUID helpers
-│   │   │   ├── seed.py               # Development seed (1 ADMIN, 1 PEOPLE, Cases A-E)
-│   │   │   └── session.py            # AsyncSessionLocal & engine setup
-│   │   ├── schemas/                  # Pydantic validation schemas
-│   │   └── services/                 # Model adapters & business logic
-│   ├── tests/                        # Automated backend test suite (140 tests)
-│   └── requirements.txt              # Backend dependencies
-├── lib/
-│   ├── core/                         # Flutter core utilities & services
-│   │   ├── network/                  # ApiClient, ApiConfig, Exceptions
-│   │   ├── routes/                   # AppRouter (GoRouter) & RoutePaths
-│   │   └── theme/                    # AppColors, AppTheme, AppTypography
+│   │   ├── api/                    # REST API routing layer
+│   │   │   └── routes/             # Versioned API routes (auth, sessions, cases, svi, etc.)
+│   │   ├── core/                   # Core application configuration & security
+│   │   ├── db/                     # Database models, schemas, and session managers
+│   │   ├── schemas/                # Pydantic data schemas and contracts
+│   │   └── services/               # Business logic & AI model adapters
+│   │       ├── emotion/            # Speech & Text emotion inference services
+│   │       ├── stress/             # MentalBERT stress classification service
+│   │       ├── llm/                # Gemma LLM client, schemas & prompt guards
+│   │       ├── svi/                # Deterministic Custom SVI Engine v1.0
+│   │       ├── recommendation/     # Support pathway generation engine
+│   │       └── session_service.py  # Session lifecycle & multimodal orchestration
+│   ├── tests/                      # Pytest comprehensive test suite (140+ tests)
+│   ├── requirements.txt            # Python backend dependencies
+│   └── run_server.py               # Backend startup script
+├── lib/                            # Flutter Frontend Application
+│   ├── core/                       # Core styles, themes, and API clients
 │   ├── features/
-│   │   ├── responder/                # Admin Web Dashboard & review views
-│   │   │   ├── data/                 # Models & AdminApiService
-│   │   │   └── pages/                # AdminShellLayout, AdminViews, LoginPage
-│   │   └── victim/                   # Citizen / Complainant mobile experience
-│   │       ├── data/                 # Victim models & API service
-│   │       └── pages/                # Chat, Voice, Intake, Consent, Support
-│   └── shared/                       # Reusable widgets (SanctuaryHeader, CrisisBanner)
-├── docs/                             # Engineering documentation suite
-│   ├── ai-disclosure.md              # AI model cards & disclosure
-│   ├── ai-pipeline.md                # ML pipeline technical deep dive
-│   ├── api.md                        # Complete REST API reference
-│   ├── architecture.md               # Detailed system architecture
-│   ├── demo.md                       # SIH demonstration script (Cases A-E)
-│   ├── privacy-and-ethics.md         # Ethical AI & privacy protocols
-│   ├── security.md                   # Security hardening & RBAC
-│   └── threat-model.md               # STRIDE threat model
-├── test/                             # Flutter automated test suite (34 tests)
-├── pubspec.yaml                      # Flutter project configuration
-└── README.md                         # Project documentation
+│   │   ├── auth/                   # Authentication (Login, Register, Role Guards)
+│   │   ├── victim/                 # Complainant interface (Chat, Voice Recorder, Intake)
+│   │   └── responder/              # Admin/Responder console (Web Dashboard, Case Details)
+│   ├── shared/                     # Shared UI components & widgets
+│   └── main.dart                   # Flutter application entry point
+├── test/                           # Flutter unit & widget test suite (34+ tests)
+├── assets/                         # Application branding assets & icons
+├── docs/                           # Architecture documentation & specifications
+├── pubspec.yaml                    # Flutter project configuration & dependencies
+├── run_backend.bat                 # Windows batch launcher for backend
+├── run_backend.ps1                 # PowerShell launcher for backend
+└── README.md                       # Project documentation
 ```
 
 ---
 
-## 15. Setup & Installation
+## 17. Development Status
+
+| Component | Status | Implementation Details |
+| :--- | :---: | :--- |
+| **FastAPI REST API Gateway** | ✅ **Implemented** | Complete routes for auth, sessions, assessment, cases, svi, and admin |
+| **Speech Emotion Model Adapter** | ✅ **Implemented** | `Dpngtm/wav2vec2-emotion-recognition` adapter with fallback guards |
+| **Text Emotion Model Adapter** | ✅ **Implemented** | `SamLowe/roberta-base-go_emotions` 28-class inference adapter |
+| **Stress Detection Adapter** | ✅ **Implemented** | `jtvallente/mentalbert_dreaddit_best` neural classifier |
+| **Gemma 3n Multimodal Service** | ✅ **Implemented** | Structured evidence extraction schema, prompt guards & policy filters |
+| **Custom SVI Engine v1.0** | ✅ **Implemented** | Deterministic mathematical scoring with factor attribution and risk bands |
+| **Support Recommendation Engine** | ✅ **Implemented** | Rule-driven recommendation generation across 7 support categories |
+| **Strict 2-Role RBAC** | ✅ **Implemented** | `PEOPLE` and `ADMIN` role boundaries enforced via JWT & DB policies |
+| **Flutter Mobile Client (Android)** | ✅ **Implemented** | Complainant intake, voice recording (16 kHz WAV), and chat UI |
+| **Flutter Admin Web Dashboard** | ✅ **Implemented** | Desktop-first triage console with metrics, case views, and human review |
+| **Automated Test Suites** | ✅ **Implemented** | 140+ backend pytest tests and 34+ Flutter widget/integration tests |
+| **Domain QLoRA Fine-Tuning** | 🔄 **Planned** | Parameter-efficient fine-tuning on consented bilingual helpline data |
+| **Edge Quantization & Packaging** | 🔄 **Planned** | GGUF / ONNX INT8 quantization for resource-constrained edge deployments |
+
+---
+
+## 18. Future Roadmap
+
+1. **Phase 1: Consented Domain SFT / QLoRA Training**
+   - Fine-tune `google/gemma-3n-E2B-it` using QLoRA on curated, de-identified emergency helpline dialogues.
+   - Refine extraction accuracy for regional dialectal nuances and informal distress expressions.
+
+2. **Phase 2: Edge-Optimized Deployment**
+   - Package speech emotion and stress models using ONNX Runtime with INT8 quantization for low-latency edge deployment.
+   - Benchmark GGUF quantized weights for local LLM inference on standard workstation hardware without discrete GPUs.
+
+3. **Phase 3: Integration with National Helpline Infrastructure**
+   - Integrate with Computer-Aided Dispatch (CAD) systems as an auxiliary, advisory telemetry stream.
+   - Expand multi-agency referral pathways (DLSA, Sakhi One Stop Centers, Swadhar Greh).
+
+---
+
+## 19. Setup & Installation Instructions
+
+The codebase is fully functional and ready to run locally:
 
 ### Prerequisites
-- **Python**: Version 3.10, 3.11, 3.12, 3.13, or 3.14
-- **Flutter SDK**: Version 3.13 or newer
-- **PostgreSQL**: Version 14+ (or local SQLite fallback used automatically)
-- **Git**: Version 2.30+
+- **Python**: 3.10, 3.11, or 3.12
+- **Flutter**: 3.13+ with Dart SDK
+- **Database**: PostgreSQL 18 (or local SQLite auto-fallback)
+- **Optional (for Local Gemma LLM)**: Ollama running `gemma3:12b` or configured remote endpoint
 
-### 1. Backend Setup
+---
 
-```powershell
-# Clone repository
-git clone https://github.com/your-org/sih26093.git
-cd sih26093/backend
+### Step 1: Backend Setup
+```bash
+# Navigate to backend directory
+cd backend
 
-# Create virtual environment
+# Create and activate a virtual environment
 python -m venv venv
-venv\Scriptsctivate
+# On Windows:
+.\venv\Scripts\activate
+# On Linux/macOS:
+# source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Run migrations and seed database
-python -m app.db.seed
+# Configure environment variables (copy and edit sample)
+cp .env.example .env
 
-# Start FastAPI development server
+# Run database migrations (optional, SQLite/Postgres auto-initializes)
+alembic upgrade head
+
+# Start the FastAPI development server
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+*The interactive Swagger API documentation is available at `http://localhost:8000/docs`.*
 
-The API docs are available at `http://127.0.0.1:8000/docs`.
+---
 
-### 2. Frontend Setup
+### Step 2: Running Backend Tests
+```bash
+cd backend
+pytest tests/ -v
+```
 
-```powershell
-# In project root directory (d:/sih26093)
+---
+
+### Step 3: Frontend Setup (Flutter)
+```bash
+# From the project root
 flutter pub get
 
-# Launch Flutter Web Admin Dashboard
+# Run Flutter static analysis
+flutter analyze
+
+# Run Flutter test suite
+flutter test
+
+# Run Web Dashboard (Desktop Chrome)
 flutter run -d chrome
 
-# Or build production Web assets
-flutter build web
-
-# Or build debug Android APK
-flutter build apk --debug
-```
-
-The compiled APK will be at `build/app/outputs/flutter-apk/app-debug.apk`.
-
----
-
-## 16. Environment Configuration
-
-Copy the example environment configuration to `.env` (never commit `.env` to version control):
-
-| Variable | Default Value | Description |
-| :--- | :--- | :--- |
-| `DATABASE_URL` | `sqlite+aiosqlite:///responder.db` | PostgreSQL connection string (`postgresql+asyncpg://...`) |
-| `JWT_SECRET_KEY` | *(Set locally)* | Cryptographic secret for signing HS256 tokens |
-| `ADMIN_EMAIL` | `admin@localhost` | Email for development ADMIN account |
-| `ADMIN_PASSWORD` | *(Set locally)* | Password for development ADMIN account |
-| `PEOPLE_EMAIL` | `people@localhost` | Email for development citizen/victim account |
-| `PEOPLE_PASSWORD` | *(Set locally)* | Password for development citizen/victim account |
-| `ASR_MODEL_NAME` | `ai4bharat/indic-conformer-600m-multilingual` | Locked IndicConformer model identifier |
-| `USE_MOCK_ASR` | `false` | Enable mock adapter for testing without GPU |
-| `USE_MOCK_EMOTION` | `false` | Enable mock adapter for emotion recognition |
-| `USE_MOCK_STRESS` | `false` | Enable mock adapter for stress classification |
-| `USE_MOCK_GEMMA` | `false` | Enable mock adapter for Gemma LLM assessment |
-
----
-
-## 17. Development Seed Accounts
-
-The development database seeds **exactly two accounts**:
-
-| Role | Username | Default Email | Password | Access Level |
-| :---: | :---: | :---: | :---: | :--- |
-| **ADMIN** | `admin_user` | `admin@nhaa.gov.in` | `AdminPassword@123` *(via env)* | Full Admin Web Portal, Cases, SVI, Reviews, Audit |
-| **PEOPLE** | `people_user` | `people@nhaa.gov.in` | `PeoplePassword@123` *(via env)* | Complainant intake, voice chat, own session |
-
----
-
-## 18. REST API Overview
-
-### Authentication
-- `POST /api/v1/auth/login` — Authenticate user and issue access/refresh JWTs
-- `POST /api/v1/auth/refresh` — Issue fresh access token using refresh token
-- `GET /api/v1/auth/me` — Retrieve current user profile and role
-
-### Victim Sessions & Audio
-- `POST /api/v1/sessions` — Initialize intake session with language code
-- `POST /api/v1/sessions/{id}/messages` — Send conversation message
-- `POST /api/v1/sessions/{id}/transcribe` — Transcribe 16 kHz audio via IndicConformer
-
-### Emotion, Stress & Multimodal Assessment
-- `POST /api/v1/sessions/{id}/analyze/speech-emotion` — Run Wav2Vec2 acoustic emotion inference
-- `POST /api/v1/sessions/{id}/analyze/text-emotion` — Run RoBERTa GoEmotions inference
-- `POST /api/v1/sessions/{id}/analyze/stress` — Run MentalBERT stress detection
-- `POST /api/v1/sessions/{id}/analyze/multimodal` — Aggregate multimodal session state
-- `POST /api/v1/sessions/{id}/assessment` — Run Gemma 3n E2B IT structured evidence extraction
-
-### Deterministic SVI & Recommendations
-- `POST /api/v1/svi/calculate` — Calculate deterministic SVI score and risk category
-- `POST /api/v1/recommendations/generate` — Generate advisory support pathways
-
-### Admin Operations (`ADMIN` Role Only)
-- `GET /api/v1/admin/dashboard` — Live triage metrics and risk distribution
-- `GET /api/v1/admin/cases` — Filterable case queue with pagination and search
-- `GET /api/v1/admin/cases/{id}` — Full case clinical details, transcripts, SVI, and recommendations
-- `POST /api/v1/admin/cases/{id}/status` — Validated case status lifecycle transition
-- `POST /api/v1/admin/recommendations/{id}/review` — Human review decision (`ACCEPT`, `MODIFY`, `REJECT`)
-- `GET /api/v1/admin/audit` — System-wide sanitized audit trail
-
----
-
-## 19. Security, Privacy & Ethics
-
-- **Zero Autonomous Dispatch**: Emergency services are never called automatically.
-- **Append-Only Audit Logging**: All triage assessments, status updates, and human reviews generate immutable audit events.
-- **Sanitized Audit Records**: Raw victim conversation text is stripped from audit views to preserve complainant privacy.
-- **Data Minimization**: Audio files are processed in memory and discarded after feature extraction unless explicit consent is granted.
-- **OWASP / STRIDE Hardening**: Parameterized SQL queries prevent SQL injection; JWTs are validated server-side for expiry, algorithm, and signatures.
-
----
-
-## 20. Verification & Test Suite
-
-The test suite validates both backend and frontend layers:
-
-```powershell
-# 1. Run full backend pytest suite
-python -m pytest backend/tests -v
-# Result: 140 passed in 25.86s
-
-# 2. Run Flutter widget and unit tests
-flutter test
-# Result: 34 passed in 4.0s
-
-# 3. Verify static analysis
-flutter analyze
-# Result: No issues found! (ran in 3.4s)
-
-# 4. Compile Web production bundle
-flutter build web
-# Result: √ Built build/web
-
-# 5. Compile Android debug APK
-flutter build apk --debug
-# Result: √ Built build/app/outputs/flutter-apk/app-debug.apk
+# Run on Android Emulator / Physical Device
+flutter run -d android
 ```
 
 ---
 
-## 21. Current Implementation Status
+## 20. Disclaimer & Responsible AI Considerations
 
-| Component | Status | Details |
-| :--- | :---: | :--- |
-| **Flutter Victim Experience** | **Complete** | Approved Stitch visual design, text & voice intake, multi-turn guidance |
-| **IndicConformer ASR** | **Complete** | Multilingual conformer model integrated, supporting CTC/RNNT decoders |
-| **Speech Emotion Recognition** | **Complete** | Wav2Vec2 7-class acoustic emotion extraction |
-| **Text Emotion Recognition** | **Complete** | RoBERTa-GoEmotions 28-class textual emotion classifier |
-| **Neural Stress Detection** | **Complete** | Dreaddit MentalBERT fine-tuned stress detection |
-| **Gemma 3n Multimodal Assessment** | **Complete** | Gemma 3n E2B IT structured clinical evidence synthesis |
-| **Deterministic SVI Engine** | **Complete** | Explainable 0–100 mathematical scoring formula v1.0 |
-| **Support Recommendation Engine** | **Complete** | 7 support pathways with human review decision states |
-| **PostgreSQL & Alembic** | **Complete** | Async schema, JSONB support, migrations, relational models |
-| **Authentication & RBAC** | **Complete** | Strictly two roles (`PEOPLE`, `ADMIN`), JWT bearer authentication |
-| **Admin Web Dashboard** | **Complete** | Desktop-first layout, overview cards, case queues, detail inspectors |
-| **Append-Only Audit Trail** | **Complete** | Immutable logging, non-repudiation, sanitized metadata |
-| **Synthetic Demo Manifest** | **Complete** | 5 demonstration cases (Cases A–E) pre-seeded |
-| **Persistent Application Memory** | **Complete** | Bounded longitudinal context retrieval (max 350 words, 3 prior sessions) for Gemma 3n |
-| **10 Relational Entities** | **Complete** | Users, Cases, Sessions, Messages, AI Signals, Assessments, SVI, Recommendations, Reviews, Audit |
-
----
-
-## 22. Synthetic SIH Demonstration Cases
-
-The system includes 5 synthetic demonstration cases for hackathon evaluators:
-
-- **Case A** (`NHAA-2026-SYN-0825`): English | SVI 18.0 | `LOW` | Procedural inquiry regarding compensation documentation.
-- **Case B** (`NHAA-2026-SYN-0820`): Hindi | SVI 45.0 | `MODERATE` | Relocation stress and social isolation; community counselor referral.
-- **Case C** (`NHAA-2026-SYN-0815`): English | SVI 72.0 | `HIGH` | Workplace retaliatory harassment, sleep disturbance; DLSA legal aid referral.
-- **Case D** (`NHAA-2026-SYN-0812`): English | SVI 88.5 | `CRITICAL` | Active intruder, forced entry threats; immediate human emergency desk escalation.
-- **Case E** (`NHAA-2026-SYN-0830`): Tamil | SVI 71.0 | `HIGH` | In-law harassment, threatened eviction with minor children; multi-pathway support (Counseling + Legal + Shelter).
-
----
-
-## 23. Documentation Index
-
-Detailed engineering documentation is available in the [`docs/`](docs/) directory:
-
-- [System Architecture](docs/architecture.md) — Comprehensive technical topology and data flow
-- [REST API Reference](docs/api.md) — Endpoint specifications, request bodies, and responses
-- [Security & Hardening](docs/security.md) — RBAC enforcement, JWT lifecycle, and cryptographic standards
-- [AI Pipeline Deep Dive](docs/ai-pipeline.md) — Model cards, hyperparameters, and feature extraction
-- [SIH Demonstration Script](docs/demo.md) — Step-by-step evaluator walkthrough for Cases A–E
-- [AI Disclosure & Governance](docs/ai-disclosure.md) — Model limitations, safety guardrails, and ethics
-- [STRIDE Threat Model](docs/threat-model.md) — Security analysis across threat vectors
-- [Privacy & Ethics Architecture](docs/privacy-and-ethics.md) — Data minimization and non-diagnostic framing
-- [PostgreSQL Database Architecture](docs/database.md) — 10 logical entities, Alembic migrations, indexes, and privacy rules
-- [Persistent Application Memory](docs/memory.md) — Bounded context service, Gemma prompt grounding, and session continuity
-
----
-
-## 24. Known Limitations
-
-1. **Non-Clinical Validation**: The SVI formula and thresholds represent operational engineering configurations for hackathon evaluation and have not undergone longitudinal clinical trials.
-2. **Pretrained Model Boundaries**: Wav2Vec2 and RoBERTa models were trained on public benchmark datasets; performance on colloquial dialectal variations may vary.
-3. **WebAudio Browser Constraints**: Direct microphone access on Web browsers requires HTTPS or localhost due to browser security sandboxing.
-
----
-
-## 25. Project Roadmap
-
-- [ ] **Multi-Dialect Expansion**: Extended fine-tuning on regional Indic audio datasets.
-- [ ] **On-Device Model Quantization**: Exporting models to ONNX / TFLite for resource-constrained edge deployments.
-- [ ] **Clinical Alignment Study**: Collaborative evaluation with trauma centers and institutional helpline partners.
-- [ ] **Hardware-Accelerated Inference**: TensorRT and vLLM serving optimization for high-concurrency national deployments.
-
----
-
-## 26. Disclaimer
-
-> **IMPORTANT**: This software is a prototype developed for the **Smart India Hackathon 2026**. It is designed strictly for research, demonstration, and human-in-the-loop decision-support evaluation. It is **not** a licensed medical diagnostic device, psychiatric diagnostic system, or autonomous emergency dispatch mechanism. All recommendations must be reviewed and executed by qualified human personnel.
-
----
-
-## 27. Hackathon & Team Details
-
-- **Event**: Smart India Hackathon 2026 (SIH 2026)
-- **Problem Statement**: SIH26093
-- **Theme**: Smart Automation
-- **Category**: Software
-- **Organization**: Ministry of Social Justice and Empowerment / NHAA 14566
-
----
-
-## 28. License
-
-License to be added. *(SIH 2026 Prototype)*
+> [!WARNING]
+> ### Critical Operational & Ethical Disclaimer
+> - **Decision Support Only**: SIH26093 is an engineering decision-support tool. It is **not** a diagnostic medical device, psychiatric assessment tool, or judicial verdict generator.
+> - **Zero Autonomous Interventions**: The platform will never autonomously dispatch police, emergency medical services, or legal summons. All recommendations require verified human review and authorization.
+> - **Non-Clinical Risk Bands**: SVI scores (0–100) and risk categories (`LOW`, `MODERATE`, `HIGH`, `CRITICAL`) are triage rubrics designed to assist human operators in managing response queues during operational distress calls; they do not represent clinical diagnoses.
+> - **Data Privacy & Protection**: Complainant interactions are protected under role-based access control (RBAC). Identifiable voice and text data must be handled in compliance with applicable data protection standards.

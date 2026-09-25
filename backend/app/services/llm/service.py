@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 from app.services.llm.base import BaseLLMAssessmentAdapter
-from app.services.llm.gemma import GemmaAdapter, MockGemmaAdapter
+from app.services.llm.gemma import GemmaAdapter
 from app.services.llm.schemas import MultimodalAssessmentInput, TraumaAssessment
 from app.core.config import settings
 
@@ -18,13 +18,25 @@ class GemmaService:
         if adapter is not None:
             self._adapter = adapter
         else:
-            model_id = settings.HF_CHAT_MODEL or settings.GEMMA_MODEL_ID
-            logger.info(f"[AI] Initializing GemmaService with remote GemmaAdapter ({model_id})")
+            model_id = settings.GEMMA_MODEL or settings.GEMMA_MODEL_ID
+            logger.info(
+                f"[GEMMA] Initializing GemmaService with local GemmaAdapter "
+                f"(model={model_id}, runtime={settings.GEMMA_RUNTIME}, url={settings.GEMMA_BASE_URL})"
+            )
             self._adapter = GemmaAdapter(
                 model_id=model_id,
-                token=settings.HF_TOKEN,
-                device=settings.GEMMA_DEVICE
+                base_url=settings.GEMMA_BASE_URL,
+                runtime=settings.GEMMA_RUNTIME,
+                device=settings.GEMMA_DEVICE,
+                timeout_seconds=settings.GEMMA_TIMEOUT_SECONDS
             )
+
+    def check_health(self) -> tuple[bool, dict]:
+        """Verify reachability and readiness of local Gemma inference runtime."""
+        if hasattr(self._adapter, "check_health"):
+            return self._adapter.check_health()
+        return self._adapter.is_loaded(), {}
+
 
     def set_adapter(self, adapter: BaseLLMAssessmentAdapter) -> None:
         """Allow dynamic adapter swapping for tests and evaluation."""
